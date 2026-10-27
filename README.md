@@ -12,15 +12,12 @@ O curso foi desenvolvido e apresentado por um time de quatro instrutores, com o 
 - Principais áreas de aplicação.
 - Um breve passeio pela história da IA.
 
-### 2. 💬 **Chatbots**
-- Como os chatbots mudaram a forma de conversar com máquinas.
-- Demonstração e criação de um chatbot simples usando **ChatGPT**.
 
-### 3. 🕵️ **Reconhecimento de Objetos**
+### 2. 🕵️ **Reconhecimento de Objetos**
 - IA aplicada a imagens e visão computacional.
 - Implementações no **Google Colab** com **TensorFlow** e **Keras**.
 
-### 4. 🧩 **Projetos Práticos**
+### 3. 🧩 **Projetos Práticos**
 - Exercícios interativos para fixar o conteúdo.
 
 ---
