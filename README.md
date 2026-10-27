@@ -1,6 +1,6 @@
 # 🤖 Inteligência Artificial - Infoeste 2026
 
-Este repositório contém o material do curso de **Inteligência Artificial** ministrado durante o evento **Infoeste 2025**, voltado para alunos da **ETEC**.  
+Este repositório contém o material do curso de **Inteligência Artificial** ministrado durante o evento **Infoeste 2026**, voltado para alunos da **ETEC**.  
 O curso foi desenvolvido e apresentado por um time de quatro instrutores, com o objetivo de **introduzir conceitos fundamentais de IA** e mostrar suas aplicações no mundo real, de forma leve e prática. 🚀
 
 ---
@@ -34,21 +34,9 @@ Capacitar os alunos a:
 
 ---
 
-## 🛠️ **Como Usar este Repositório**
-
-1. Faça o clone do repositório:
-   ```bash
-   git clone https://github.com/usuario/Infoeste2024-IA.git
-2. Explore os notebooks no diretório notebooks/ para seguir os exemplos e projetos.
 
 ## 🤝 **Colaboradores**
 - [MrBElga (GitHub)](https://github.com/MrBElga)
 - [Luis (GitHub)](https://github.com/lyuisilumi)
-
-
-
-
-## 📄 **Licença**
-Este material está licenciado sob a licença MIT. Fique à vontade para reutilizar e compartilhar, dando os devidos créditos.
 
 
