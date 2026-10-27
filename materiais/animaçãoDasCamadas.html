@@ -1,0 +1,1937 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>INFOESTE: a CNN do nosso código, linha por linha</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+:root{
+  --font:"Atkinson Hyperlegible Next","Atkinson Hyperlegible","Trebuchet MS","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Atkinson Hyperlegible Mono",Consolas,"Cascadia Mono","SF Mono",Menlo,ui-monospace,monospace;
+  --pad:clamp(14px,2.2vw,32px);
+  color-scheme:light;
+  --bg:#F2F4FB;--surface:#FFFFFF;--surface-2:#E7EBF8;--line:#CDD4EC;--line-strong:#97A2CB;
+  --text:#0B1020;--muted:#465073;--faint:#6A7497;
+  --cyan:#007896;--violet:#6A32D2;--pink:#C0175A;--lime:#3C6A00;--amber:#A15300;--blue:#1E4FCB;
+  --on-accent:#FFFFFF;--map-bg:#0B1020;
+  --group:var(--cyan);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0B1020;--surface:#111935;--surface-2:#182245;--line:#283467;--line-strong:#42508F;
+    --text:#F2F4FF;--muted:#A9B3DA;--faint:#7E89B7;
+    --cyan:#00E5FF;--violet:#B26BFF;--pink:#FF4D8D;--lime:#C6FF3D;--amber:#FFB02E;--blue:#6C98FF;
+    --on-accent:#0B1020;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0B1020;--surface:#111935;--surface-2:#182245;--line:#283467;--line-strong:#42508F;
+  --text:#F2F4FF;--muted:#A9B3DA;--faint:#7E89B7;
+  --cyan:#00E5FF;--violet:#B26BFF;--pink:#FF4D8D;--lime:#C6FF3D;--amber:#FFB02E;--blue:#6C98FF;
+  --on-accent:#0B1020;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);font-size:17px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--group);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+.app{min-height:100vh;display:flex;flex-direction:column}
+.app[data-group="entrada"],.app[data-group="geral"]{--group:var(--cyan)}
+.app[data-group="oculta"]{--group:var(--violet)}
+.app[data-group="saida"]{--group:var(--pink)}
+
+/* ---------- topo ---------- */
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px 20px;flex-wrap:wrap;padding:10px var(--pad) 6px}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brand-mark{font-weight:800;font-size:14px;color:var(--cyan);border:1.5px solid currentColor;border-radius:999px;padding:1px 10px;letter-spacing:.05em;white-space:nowrap}
+.brand h1{margin:0;font-size:clamp(17px,1.4vw,21px);font-weight:700;line-height:1.2}
+.top-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.photo-switch{display:inline-flex;align-items:center;gap:3px;border:1.5px solid var(--line-strong);border-radius:12px;padding:3px;background:var(--surface)}
+.photo-switch .ps-lbl{font-size:14px;color:var(--muted);padding:0 6px 0 8px}
+.photo-switch button{display:inline-flex;align-items:center;gap:8px;border:0;background:transparent;border-radius:9px;padding:3px 12px 3px 3px;font-weight:700;color:var(--muted);min-height:40px}
+.photo-switch img{width:34px;height:34px;border-radius:6px;image-rendering:pixelated;display:block}
+.photo-switch button[aria-checked="true"]{background:var(--surface-2);color:var(--text);box-shadow:inset 0 0 0 2px var(--group)}
+.icon-btn{width:44px;height:44px;border-radius:12px;border:1.5px solid var(--line-strong);background:var(--surface);display:grid;place-items:center;font-weight:800;font-size:19px;color:var(--text)}
+.icon-btn:hover{border-color:var(--text)}
+.icon-btn svg{width:22px;height:22px}
+
+/* ---------- trilha ---------- */
+.trail{display:flex;align-items:stretch;gap:0;overflow-x:auto;padding:4px var(--pad) 10px;border-bottom:1px solid var(--line);scrollbar-width:thin}
+.blk{flex:0 0 auto;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:1px;padding:16px 6px 6px;border:1.5px solid transparent;border-radius:12px;background:transparent;color:var(--muted);min-width:88px}
+.blk canvas{display:block;margin-bottom:3px}
+.blk .bn{font-size:13.5px;font-weight:700;color:var(--text);white-space:nowrap;line-height:1.2}
+.blk .bs{font-size:13px;white-space:nowrap;font-variant-numeric:tabular-nums;line-height:1.25}
+.blk .bnum{position:absolute;top:3px;left:8px;font-size:12px;font-weight:800;color:var(--faint)}
+.blk:hover{background:var(--surface)}
+.blk[data-grp="entrada"]{--bc:var(--cyan)}.blk[data-grp="oculta"]{--bc:var(--violet)}.blk[data-grp="saida"]{--bc:var(--pink)}.blk[data-grp="geral"]{--bc:var(--line-strong)}
+.blk[aria-current="step"]{background:var(--surface);border-color:var(--bc)}
+.blk[aria-current="step"] .bs,.blk[aria-current="step"] .bnum{color:var(--bc);font-weight:800}
+.blk.lit{border-color:var(--bc);background:var(--surface)}
+.blk.now{box-shadow:0 0 0 4px color-mix(in srgb,var(--bc) 30%,transparent)}
+.tsep{flex:0 0 auto;align-self:center;width:12px;height:16px;color:var(--faint);margin-top:-18px}
+
+/* ---------- cabeçalho da linha ---------- */
+main{flex:1;display:flex;flex-direction:column;min-width:0}
+.head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:10px 28px;padding:14px var(--pad) 8px}
+.head-main{min-width:0}
+.kicker{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:15px;color:var(--muted)}
+.grp-pill{color:var(--group);border:1.5px solid currentColor;border-radius:999px;padding:0 10px;font-weight:700;font-size:14px;line-height:1.6}
+.grp-pill:empty{display:none}
+.codeline{font-family:var(--mono);font-size:clamp(17px,2vw,31px);line-height:1.35;margin:6px 0 4px;white-space:nowrap;overflow-x:auto;overflow-y:hidden;padding:2px 0 8px;scrollbar-width:thin}
+.codeline .pre{color:var(--faint)}
+.codeline .fn{font-weight:700;color:var(--text)}
+.codeline .pun{color:var(--muted)}
+.tok{font:inherit;font-weight:700;color:var(--tc);background:transparent;border:0;border-bottom:4px solid var(--tc);border-radius:5px 5px 0 0;padding:0 .14em;margin:0 .02em;line-height:inherit;cursor:help}
+.tok:hover,.tok.on{background:color-mix(in srgb,var(--tc) 18%,transparent)}
+.say{margin:2px 0 0;font-size:clamp(17px,1.4vw,22px);line-height:1.4;max-width:70ch;text-wrap:pretty}
+.shape-card{display:grid;grid-template-columns:auto auto;align-items:baseline;gap:0 14px;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:10px 18px;min-width:260px}
+.shape-card .lbl{font-size:14px;color:var(--muted)}
+.shape-card .val{font-size:clamp(19px,1.6vw,25px);font-weight:800;white-space:nowrap;font-variant-numeric:tabular-nums}
+.shape-card .val.out{color:var(--group)}
+.shape-card .params{grid-column:1/-1;margin-top:6px;padding-top:6px;border-top:1px solid var(--line);font-size:14.5px;color:var(--muted);line-height:1.35}
+.shape-card .params b{color:var(--text)}
+
+/* ---------- palco ---------- */
+.stage{padding:6px var(--pad) 10px;flex:1;--hlc:var(--cyan)}
+.scene[hidden]{display:none!important}
+.flow{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:clamp(12px,2vw,30px);align-items:center}
+.flow-2{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:stretch}
+.fig{margin:0;display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0}
+.fig canvas{display:block;border-radius:8px;max-width:100%}
+.fig figcaption{font-size:15px;color:var(--muted);text-align:center;max-width:36ch;line-height:1.35}
+.fig figcaption b{color:var(--text)}
+.panel{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:14px 16px;min-width:0}
+.panel h3,.gal-head h3{font-size:16.5px;margin:0 0 10px;font-weight:700;line-height:1.3}
+.panel-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;margin-bottom:10px}
+.panel-head h3{margin:0}
+.note{font-size:14.5px;color:var(--muted);margin:8px 0 0;line-height:1.4}
+.count-line{text-align:center;font-size:clamp(16px,1.3vw,20px);margin:12px 0 0;color:var(--muted)}
+.count-line b{color:var(--text)}
+.stage[data-hl="window"] [data-link~="window"],.stage[data-hl="count"] [data-link~="count"],.stage[data-hl="relu"] [data-link~="relu"],.stage[data-hl="size"] [data-link~="size"],.stage[data-hl="channels"] [data-link~="channels"],.stage[data-hl="divide"] [data-link~="divide"],.stage[data-hl="flat"] [data-link~="flat"],.stage[data-hl="softmax"] [data-link~="softmax"]{outline:3px solid var(--hlc);outline-offset:6px;border-radius:12px}
+
+/* contas */
+.calc{display:flex;flex-direction:column;align-items:center;gap:10px;min-width:0}
+.calc-row{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;justify-content:center}
+.mat{display:flex;flex-direction:column;align-items:center;gap:6px;border-radius:12px;padding:2px}
+.mat-lbl{font-size:13.5px;color:var(--muted);text-align:center;max-width:16ch;line-height:1.25;min-height:2.5em;display:flex;align-items:flex-end;justify-content:center}
+.g3{display:grid;grid-template-columns:repeat(3,var(--cell));gap:3px;--cell:clamp(36px,3.1vw,48px)}
+.g2{display:grid;grid-template-columns:repeat(2,var(--cell));gap:5px;--cell:clamp(54px,4.6vw,72px)}
+.cell{height:var(--cell);display:grid;place-items:center;border-radius:7px;font-family:var(--mono);font-size:clamp(13px,1.08vw,16px);font-variant-numeric:tabular-nums;background:var(--surface-2);color:var(--text);border:2px solid transparent;transition:background-color .12s}
+.g2 .cell{font-size:clamp(16px,1.35vw,21px)}
+.cell.win{border-color:var(--cyan);font-weight:700}
+.cell.big{width:clamp(70px,6vw,92px);height:clamp(70px,6vw,92px);font-size:clamp(19px,1.7vw,26px);font-weight:700;border-color:var(--cyan)}
+.op{font-size:26px;font-weight:800;color:var(--muted);align-self:center;padding:0 2px;margin-top:2.2em}
+.sumline{font-size:clamp(16px,1.35vw,20px);text-align:center;line-height:1.55;max-width:34ch}
+.sumline .res{display:inline-block;padding:0 8px;border-radius:8px;background:var(--surface-2);font-weight:800;font-variant-numeric:tabular-nums}
+.sumline .neg{color:var(--blue)}
+.relu-row{display:flex;align-items:center;gap:12px;border-radius:12px;padding:4px 8px}
+.relu-row svg{width:150px;height:96px;flex:0 0 auto}
+.relu-row .rr-text{font-size:14.5px;color:var(--muted);max-width:20ch;line-height:1.35}
+.recipe{font-size:14px;color:var(--muted);text-align:center;max-width:44ch;line-height:1.35}
+.why{display:inline-flex;align-items:center;gap:8px;font-size:15px;color:var(--muted);border:1.5px dashed var(--line-strong);border-radius:999px;padding:4px 12px;transition:border-color .2s,color .2s}
+.why.on{border-color:var(--cyan);color:var(--text)}
+.why b{color:var(--text)}
+.under{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:10px}
+
+/* galeria de filtros */
+.gal-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 16px;margin:14px 0 8px;border-radius:12px}
+.gal-head h3{margin:0}
+.gal-head .note{margin:0}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:7px;border-radius:12px}
+.gallery.g32{grid-template-columns:repeat(auto-fill,minmax(58px,1fr))}
+.gal-item{display:flex;flex-direction:column;align-items:center;gap:4px;border:1.5px solid var(--line);background:var(--surface);border-radius:10px;padding:6px 3px 5px;min-width:0;color:var(--muted)}
+.gal-item:hover{border-color:var(--line-strong)}
+.gal-item .gi-row{display:flex;align-items:center;gap:5px}
+.gal-item canvas{display:block;border-radius:4px}
+.gal-item span{font-size:12.5px;line-height:1.2;text-align:center}
+.gal-item[aria-pressed="true"]{border-color:var(--amber);box-shadow:inset 0 0 0 1.5px var(--amber);color:var(--text)}
+.gal-item[aria-pressed="true"] span{font-weight:700}
+
+/* entrada */
+.dims{position:relative;padding:24px 0 0 26px}
+.dims .d-top,.dims .d-left{position:absolute;font-size:13.5px;font-weight:700;color:var(--cyan);display:flex;align-items:center;gap:6px;white-space:nowrap}
+.dims .d-top{top:0;left:26px;right:0;justify-content:center}
+.dims .d-left{left:0;top:24px;bottom:0;writing-mode:vertical-rl;transform:rotate(180deg);justify-content:center}
+.dims .d-top::before,.dims .d-top::after{content:"";flex:1;height:2px;background:currentColor;opacity:.55}
+.dims .d-left::before,.dims .d-left::after{content:"";flex:1;width:2px;background:currentColor;opacity:.55}
+.pixel-card{align-items:stretch;width:min(100%,330px)}
+.pc-head{display:flex;align-items:center;gap:12px}
+.pc-swatch{width:64px;height:64px;border-radius:12px;border:2px solid var(--line-strong);flex:0 0 auto}
+.pc-title{font-weight:700;font-size:17px;line-height:1.25}
+.pc-sub{font-size:14.5px;color:var(--muted)}
+.rgb{display:flex;flex-direction:column;gap:8px;border-radius:12px;padding:4px}
+.rgb-row{display:grid;grid-template-columns:7.5em 1fr 3.2ch;align-items:center;gap:10px}
+.rgb-name{font-size:15px;font-weight:700}
+.rgb-bar{height:16px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.rgb-bar i{display:block;height:100%;width:0;border-radius:999px}
+.rgb-val{font-family:var(--mono);font-size:22px;text-align:right;font-variant-numeric:tabular-nums}
+
+/* rescaling */
+.numgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;max-width:420px;margin:0 auto;border-radius:12px}
+.numgrid .cell{height:clamp(44px,4.2vw,62px);font-size:clamp(13px,1.15vw,17px);border-width:2px}
+.numgrid .cell.sel{border-color:var(--cyan);border-width:3px}
+.slider-row{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px 14px;margin-top:10px;font-size:15.5px}
+.slider-row output{grid-column:1/-1;font-size:clamp(18px,1.5vw,23px);font-weight:800;text-align:center;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--group);min-height:32px}
+
+/* conv2 e flatten: grades de mapas pequenos */
+.maps16{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;width:min(100%,360px)}
+.maps32{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px;width:min(100%,470px)}
+.mini{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
+.mini canvas{width:100%;height:auto;aspect-ratio:1;border-radius:4px;display:block}
+.mini span{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums;line-height:1.2}
+.mini.main canvas{outline:2px solid var(--amber);outline-offset:1px}
+.pos{color:var(--amber)}.neg{color:var(--blue)}.zero{color:var(--faint)}
+.packet{display:grid;grid-template-columns:repeat(32,minmax(0,1fr));gap:2px;width:min(100%,560px)}
+.packet i{display:block;aspect-ratio:1;border-radius:3px}
+.strip-wrap{margin-top:14px}
+.strip-wrap canvas{display:block;width:100%;height:46px;border-radius:6px}
+.strip-meta{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 16px;margin-top:6px;font-size:15px;color:var(--muted)}
+.strip-meta b{color:var(--text);font-variant-numeric:tabular-nums}
+
+/* dense */
+.net{width:100%;max-width:520px}
+.outs32{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:3px;margin-top:10px;border-radius:10px}
+.outs32 .o{aspect-ratio:1;border-radius:4px;background:var(--surface-2);display:grid;place-items:center;font-size:10.5px;font-family:var(--mono);color:#0B1020;font-weight:700;overflow:hidden}
+.terms{font-family:var(--mono);font-size:clamp(14px,1.15vw,17px);line-height:1.6;text-align:center;max-width:36ch}
+.progress{width:min(100%,320px);height:10px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.progress i{display:block;height:100%;background:var(--cyan);width:0}
+
+/* softmax */
+.score-row{display:grid;grid-template-columns:8.5em minmax(0,1fr) 3.5ch;align-items:center;gap:10px;margin:10px 0}
+.score-row label{font-weight:700}
+.score-row output{font-family:var(--mono);font-size:19px;text-align:right;font-variant-numeric:tabular-nums}
+.bars{display:flex;flex-direction:column;gap:14px;border-radius:12px;padding:4px}
+.barline{display:grid;grid-template-columns:7.5em minmax(0,1fr) 4.2em;align-items:center;gap:10px}
+.barline .bl-name{font-weight:700;font-size:17px}
+.barline .bl-track{height:30px;border-radius:8px;background:var(--surface-2);overflow:hidden}
+.barline .bl-track i{display:block;height:100%;width:50%;background:color-mix(in srgb,var(--pink) 38%,transparent);border-radius:8px}
+.barline.win .bl-track i{background:var(--pink)}
+.barline .bl-pct{font-size:clamp(19px,1.6vw,24px);font-weight:800;text-align:right;font-variant-numeric:tabular-nums}
+.formula{font-family:var(--mono);font-size:14.5px;color:var(--muted);line-height:1.6;margin-top:12px;overflow-wrap:anywhere}
+.winner{display:flex;align-items:center;gap:12px;margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--surface-2)}
+.winner img{width:56px;height:56px;border-radius:8px;image-rendering:pixelated}
+.winner .w-big{font-size:clamp(19px,1.6vw,24px);font-weight:800}
+.winner .w-sub{font-size:14px;color:var(--muted)}
+.real{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:12px;padding:10px 14px;border:1.5px solid var(--line);border-radius:12px;font-size:15.5px}
+.real code{font-family:var(--mono);font-size:15px;background:var(--surface-2);padding:2px 8px;border-radius:6px}
+
+/* visão geral */
+.ov{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:clamp(14px,2vw,28px);align-items:start}
+.ov-code{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:10px 6px;font-family:var(--mono);font-size:clamp(13.5px,1.12vw,17px);overflow-x:auto}
+.ov-plain{padding:3px 12px;white-space:pre;color:var(--muted)}
+.ovl{display:grid;grid-template-columns:2ch minmax(0,1fr) auto;align-items:center;gap:12px;width:100%;text-align:left;border:0;background:transparent;border-radius:8px;padding:5px 10px 5px 8px;font:inherit;color:var(--text);white-space:pre}
+.ovl:hover{background:var(--surface-2)}
+.ovl .ln{color:var(--faint);text-align:right;font-weight:700}
+.ovl .sh{font-family:var(--font);font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ovl.lit .ln,.ovl.lit .sh{color:var(--bc);font-weight:700}
+.ovl.now{background:color-mix(in srgb,var(--bc) 16%,transparent)}
+.ovl[data-grp="entrada"]{--bc:var(--cyan)}.ovl[data-grp="oculta"]{--bc:var(--violet)}.ovl[data-grp="saida"]{--bc:var(--pink)}
+.ov-side{display:flex;flex-direction:column;gap:12px}
+.ov-result{display:flex;align-items:center;gap:14px;border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;min-height:84px;background:var(--surface)}
+.ov-result img{width:60px;height:60px;border-radius:8px;image-rendering:pixelated;flex:0 0 auto}
+.ov-result .or-big{font-size:clamp(17px,1.4vw,21px);font-weight:800;line-height:1.25}
+.ov-result .or-sub{font-size:14.5px;color:var(--muted);line-height:1.35}
+.pbar{display:flex;height:34px;border-radius:8px;overflow:hidden;background:var(--surface-2)}
+.pbar i{display:block;height:100%;min-width:3px}
+.plegend{list-style:none;margin:10px 0 0;padding:0;display:grid;grid-template-columns:auto 1fr auto;gap:5px 10px;font-size:15px;align-items:center}
+.plegend .sw{width:14px;height:14px;border-radius:4px}
+.plegend .pv{font-variant-numeric:tabular-nums;font-weight:700;text-align:right}
+
+/* extras */
+.extras{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:2px var(--pad) 12px}
+.box{border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.box>summary{cursor:pointer;padding:10px 14px;font-weight:700;list-style:none;display:flex;align-items:center;gap:10px;min-height:44px}
+.box>summary::-webkit-details-marker{display:none}
+.box>summary::before{content:"";width:8px;height:8px;border-right:2.5px solid currentColor;border-bottom:2.5px solid currentColor;transform:rotate(-45deg);transition:transform .15s;flex:0 0 auto}
+.box[open]>summary::before{transform:rotate(45deg)}
+.box>summary kbd{margin-left:auto}
+.box-body{padding:0 14px 14px;font-size:16.5px;line-height:1.5}
+.box-body .q{margin:0 0 10px;font-weight:700;font-size:clamp(17px,1.35vw,20px)}
+.box-body .a{margin:10px 0 0;padding:10px 12px;border-radius:10px;background:var(--surface-2)}
+.box-body p{margin:0}
+kbd{font-family:var(--mono);font-size:13px;border:1.5px solid var(--line-strong);border-bottom-width:3px;border-radius:6px;padding:0 6px;color:var(--muted);background:var(--surface)}
+
+/* controles */
+.controls{position:sticky;bottom:0;z-index:20;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;padding:10px var(--pad) calc(10px + env(safe-area-inset-bottom,0px));background:color-mix(in srgb,var(--bg) 90%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-top:1px solid var(--line)}
+.ctl-mid{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:8px 14px;border-radius:10px;border:1.5px solid var(--line-strong);background:var(--surface);color:var(--text);font-weight:700;font-size:16px;white-space:nowrap}
+.btn svg{width:18px;height:18px;flex:0 0 auto}
+.btn:hover{border-color:var(--text)}
+.btn.primary{background:var(--group);border-color:var(--group);color:var(--on-accent);min-width:158px}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.38;cursor:default}
+.btn.small{min-height:38px;padding:5px 12px;font-size:15px}
+.seg{display:inline-flex;border:1.5px solid var(--line-strong);border-radius:10px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:transparent;padding:8px 12px;min-height:41px;font-weight:700;font-size:15px;color:var(--muted)}
+.seg button+button{border-left:1.5px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--surface-2);color:var(--text);box-shadow:inset 0 -3px 0 var(--group)}
+
+.foot{padding:12px var(--pad) 22px;font-size:13.5px;color:var(--faint);line-height:1.5}
+
+/* balão das partes do código */
+.pop{position:fixed;z-index:60;max-width:min(420px,calc(100vw - 24px));background:var(--surface);color:var(--text);border:2px solid var(--tc,var(--line-strong));border-radius:12px;padding:10px 14px;font-size:17px;line-height:1.4;box-shadow:0 14px 34px rgba(0,0,0,.28);pointer-events:none}
+.pop b{color:var(--tc)}
+
+/* ajuda */
+dialog{border:1px solid var(--line-strong);border-radius:16px;background:var(--surface);color:var(--text);padding:20px 22px;max-width:min(560px,calc(100vw - 24px))}
+dialog::backdrop{background:rgba(5,8,18,.55)}
+dialog h2{margin:0 0 12px;font-size:20px}
+dialog dl{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin:0 0 14px;font-size:16px;align-items:center}
+dialog dt{display:flex;gap:4px;flex-wrap:wrap}
+dialog dd{margin:0}
+
+/* telas menores */
+@media (max-width:1180px){.head{grid-template-columns:minmax(0,1fr)}.shape-card{justify-self:start}}
+@media (max-width:980px){
+  .flow{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .flow>.calc{grid-column:1/-1;order:3}
+  .flow-2,.ov{grid-template-columns:minmax(0,1fr)}
+  .extras{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:640px){
+  body{font-size:16px}
+  .flow{grid-template-columns:minmax(0,1fr)}
+  .brand h1{font-size:16px}
+  .btn .opt{display:none}
+  .controls{justify-content:center}
+  .shape-card{min-width:0;width:100%}
+  .outs32{grid-template-columns:repeat(8,minmax(0,1fr))}
+}
+@media (max-height:820px) and (min-width:981px){
+  .top{padding-top:6px;padding-bottom:2px}
+  .head{padding-top:8px;padding-bottom:4px}
+  .trail{padding-bottom:6px}
+  .gal-head{margin-top:8px}
+  .count-line{margin-top:8px}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+
+/* celular: controles em 2 linhas */
+@media (max-width:640px){
+  .ctl-mid{display:contents}
+  .controls{gap:6px;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px))}
+  .controls::after{content:"";flex-basis:100%;height:0;order:8}
+  #speedSeg{order:9}
+  #nextBtn{order:7}
+  #prevBtn>span,#nextBtn>span,#stepBtn>span{display:none}
+  #prevBtn,#nextBtn,#stepBtn,#resetBtn{padding:8px 11px}
+  .btn.primary{min-width:0}
+  .seg button{padding:6px 10px;font-size:14px;min-height:38px}
+  .top{gap:8px}
+}
+
+[hidden]{display:none!important}
+html{scrollbar-gutter:stable}
+
+.fig figcaption b{white-space:nowrap}
+.flow-d2{grid-template-columns:minmax(0,.95fr) minmax(0,1fr) minmax(0,1.1fr);align-items:start}
+.flow-d2>.panel{width:100%}
+.maps32{width:min(100%,400px)}
+.net{max-width:460px}
+@media (max-width:980px){.flow-d2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.flow-d2>.panel:last-child{grid-column:1/-1}}
+@media (max-width:640px){.flow-d2{grid-template-columns:minmax(0,1fr)}}
+</style>
+</head>
+<body>
+<div class="app" id="app" data-group="geral">
+<header class="top">
+  <div class="brand">
+    <span class="brand-mark">INFOESTE</span>
+    <h1>A CNN do nosso código, linha por linha</h1>
+  </div>
+  <div class="top-actions">
+    <div class="photo-switch" role="radiogroup" aria-label="Foto usada nas animações">
+      <span class="ps-lbl">Foto</span>
+      <button type="button" role="radio" aria-checked="true" data-photo="cats"><img alt="" data-thumb="cats"><span>Gato</span></button>
+      <button type="button" role="radio" aria-checked="false" data-photo="dogs"><img alt="" data-thumb="dogs"><span>Cachorro</span></button>
+    </div>
+    <button type="button" class="icon-btn" id="themeBtn" aria-label="Alternar entre tema claro e escuro" title="Tema claro ou escuro"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor"/></svg></button>
+    <button type="button" class="icon-btn" id="fullBtn" aria-label="Tela cheia" title="Tela cheia (F)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+    <button type="button" class="icon-btn" id="helpBtn" aria-label="Atalhos de teclado" title="Atalhos de teclado (?)">?</button>
+  </div>
+</header>
+
+<nav class="trail" id="trail" aria-label="As linhas do modelo, na ordem do código"></nav>
+
+<main>
+  <section class="head">
+    <div class="head-main">
+      <div class="kicker"><span id="kLine"></span><span class="grp-pill" id="kGroup"></span></div>
+      <div class="codeline" id="codeLine"></div>
+      <p class="say" id="say"></p>
+    </div>
+    <div class="shape-card" aria-live="polite">
+      <span class="lbl">entra</span><span class="val" id="shpIn"></span>
+      <span class="lbl">sai</span><span class="val out" id="shpOut"></span>
+      <div class="params" id="params"></div>
+    </div>
+  </section>
+
+  <section class="stage" id="stage">
+
+    <!-- VISÃO GERAL -->
+    <div class="scene" data-scene="overview">
+      <div class="ov">
+        <div class="ov-code" id="ovCode"></div>
+        <div class="ov-side">
+          <div class="ov-result" id="ovResult"></div>
+          <div class="panel">
+            <h3>Onde ficam os 205.890 parâmetros</h3>
+            <div class="pbar" id="pbar"></div>
+            <ul class="plegend" id="plegend"></ul>
+            <p class="note">Parâmetros são os números que a rede ajusta sozinha no treino (pesos e bias). Input, Rescaling, MaxPooling2D e Flatten têm 0: só transformam os números.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1 INPUT -->
+    <div class="scene" data-scene="input" hidden>
+      <div class="flow">
+        <figure class="fig">
+          <div class="dims" data-link="size">
+            <span class="d-top">64 pixels</span><span class="d-left">64 pixels</span>
+            <canvas id="inPhoto" data-max="330" aria-label="Foto de 64 por 64 pixels. Passe o mouse para ver os números de um pixel."></canvas>
+          </div>
+          <figcaption>Passe o mouse na foto. Clique para fixar um pixel.</figcaption>
+        </figure>
+        <div class="calc pixel-card">
+          <div class="pc-head"><span class="pc-swatch" id="pxSwatch"></span><div><div class="pc-title" id="pxTitle"></div><div class="pc-sub">3 números guardam a cor deste pixel</div></div></div>
+          <div class="rgb" data-link="channels">
+            <div class="rgb-row"><span class="rgb-name">Vermelho (R)</span><span class="rgb-bar"><i style="background:#ff4b4b"></i></span><b class="rgb-val">0</b></div>
+            <div class="rgb-row"><span class="rgb-name">Verde (G)</span><span class="rgb-bar"><i style="background:#2fd36b"></i></span><b class="rgb-val">0</b></div>
+            <div class="rgb-row"><span class="rgb-name">Azul (B)</span><span class="rgb-bar"><i style="background:#4b86ff"></i></span><b class="rgb-val">0</b></div>
+          </div>
+          <p class="note">Cada número vai de 0 (nada daquela cor) até 255 (cor no máximo).</p>
+        </div>
+        <figure class="fig" data-link="channels">
+          <canvas id="inChannels" data-max="330" aria-label="A foto separada em três camadas de cor: vermelho, verde e azul"></canvas>
+          <figcaption id="inChanCap"></figcaption>
+        </figure>
+      </div>
+      <p class="count-line">Cada foto vira 64 × 64 × 3 = <b>12.288 números</b>.</p>
+    </div>
+
+    <!-- 2 RESCALING -->
+    <div class="scene" data-scene="rescale" hidden>
+      <div class="flow flow-2">
+        <div class="panel">
+          <div class="panel-head"><h3>Os números em volta do pixel escolhido</h3>
+            <div class="seg" id="rsChan" role="group" aria-label="Qual cor mostrar"><button type="button" data-ch="0" aria-pressed="true">R</button><button type="button" data-ch="1" aria-pressed="false">G</button><button type="button" data-ch="2" aria-pressed="false">B</button></div>
+          </div>
+          <div class="numgrid" id="rsGrid" data-link="divide"></div>
+          <p class="note" id="rsCap" style="text-align:center"></p>
+        </div>
+        <div class="panel">
+          <h3>A régua: de 0–255 para 0–1</h3>
+          <svg id="rsRuler" viewBox="0 0 560 200" role="img" aria-label="Régua com um valor de 0 a 255 e o mesmo valor dividido por 255" style="width:100%;height:auto;display:block"></svg>
+          <div class="slider-row"><label for="rsTry">Experimente um valor</label><input type="range" id="rsTry" min="0" max="255" step="1" value="128"><output id="rsTryOut" for="rsTry"></output></div>
+        </div>
+      </div>
+      <p class="count-line">A foto continua igual para nós: só a escala dos números muda. Entra <b>64 × 64 × 3</b>, sai <b>64 × 64 × 3</b>.</p>
+    </div>
+
+    <!-- 3 CONV2D(16) -->
+    <div class="scene" data-scene="conv1" hidden>
+      <div class="flow">
+        <figure class="fig"><canvas id="c1In" data-max="300" aria-label="Foto com a janela 3 por 3 do filtro"></canvas><figcaption>Foto <b>64 × 64</b> (já dividida por 255)</figcaption></figure>
+        <div class="calc">
+          <div class="calc-row">
+            <div class="mat" data-link="window"><div class="mat-lbl" id="c1PatchLbl">Brilho dos 9 pixels</div><div class="g3" id="c1Patch"></div></div>
+            <div class="op" aria-hidden="true">×</div>
+            <div class="mat"><div class="mat-lbl">Pesos do filtro</div><div class="g3" id="c1Kern"></div></div>
+            <div class="op" aria-hidden="true">=</div>
+            <div class="mat"><div class="mat-lbl">Multiplicações</div><div class="g3" id="c1Prod"></div></div>
+          </div>
+          <div class="sumline" id="c1Sum"></div>
+          <div class="relu-row" data-link="relu"><svg id="c1Relu" viewBox="0 0 150 96" aria-hidden="true"></svg><span class="rr-text" id="c1ReluTxt"></span></div>
+          <div class="recipe" id="c1Recipe"></div>
+        </div>
+        <figure class="fig">
+          <canvas id="c1Out" aria-label="Mapa de saída do filtro, 62 por 62"></canvas>
+          <figcaption id="c1OutCap"></figcaption>
+          <div class="seg" id="c1Mode" role="group" aria-label="Mostrar o mapa" data-link="relu"><button type="button" data-mode="pre" aria-pressed="false">Antes da ReLU</button><button type="button" data-mode="post" aria-pressed="true">Depois da ReLU</button></div>
+        </figure>
+      </div>
+      <div class="under"><span class="why" id="c1Why">Por que 62? A janela 3 × 3 cabe em <b>62</b> posições por linha: 64 − 3 + 1 = 62.</span></div>
+      <div class="gal-head" data-link="count"><h3>Os 16 filtros geram 16 mapas</h3><p class="note">Filtros de exemplo, escolhidos por nós. Na rede treinada, os 16 filtros são aprendidos no treino.</p></div>
+      <div class="gallery" id="c1Gallery" data-link="count"></div>
+    </div>
+
+    <!-- 4 MAXPOOLING2D (1º) -->
+    <div class="scene" data-scene="pool1" hidden>
+      <div class="flow">
+        <figure class="fig"><canvas id="p1In" data-max="310" aria-label="Mapa de 62 por 62 com a janela 2 por 2"></canvas><figcaption id="p1InCap"></figcaption></figure>
+        <div class="calc">
+          <div class="calc-row">
+            <div class="mat" data-link="window"><div class="mat-lbl">Os 4 números da janela 2 × 2</div><div class="g2" id="p1Four"></div></div>
+            <div class="op" aria-hidden="true">→</div>
+            <div class="mat"><div class="mat-lbl">Fica o maior</div><div class="cell big" id="p1Max"></div></div>
+          </div>
+          <div class="sumline" id="p1Sum"></div>
+        </div>
+        <figure class="fig"><canvas id="p1Out" aria-label="Mapa de 31 por 31"></canvas><figcaption>Mapa <b>31 × 31</b>: metade da altura e da largura</figcaption></figure>
+      </div>
+      <div class="gal-head"><h3>Os 16 mapas continuam 16, agora com 31 × 31</h3><p class="note">Clique em um mapa para usá-lo na animação.</p></div>
+      <div class="gallery" id="p1Gallery"></div>
+    </div>
+
+    <!-- 5 CONV2D(32) -->
+    <div class="scene" data-scene="conv2" hidden>
+      <div class="flow">
+        <div class="fig"><div class="maps16" id="c2Maps" data-link="window"></div><figcaption>Os <b>16 mapas</b> que chegaram (31 × 31). A janela 3 × 3 fica no mesmo lugar em todos.</figcaption></div>
+        <div class="calc">
+          <div class="sumline" id="c2Sum"></div>
+          <div class="relu-row" data-link="relu"><svg id="c2Relu" viewBox="0 0 150 96" aria-hidden="true"></svg><span class="rr-text" id="c2ReluTxt"></span></div>
+          <div class="recipe" id="c2Recipe"></div>
+        </div>
+        <figure class="fig"><canvas id="c2Out" data-max="290" aria-label="Mapa de saída de 29 por 29"></canvas><figcaption id="c2OutCap"></figcaption></figure>
+      </div>
+      <div class="under"><span class="why" id="c2Why">Por que 29? A janela 3 × 3 cabe em <b>29</b> posições: 31 − 3 + 1 = 29.</span></div>
+      <div class="gal-head" data-link="count"><h3>Os 32 filtros geram 32 mapas</h3><p class="note">Filtros de exemplo; os de verdade são aprendidos no treino.</p></div>
+      <div class="gallery g32" id="c2Gallery" data-link="count"></div>
+    </div>
+
+    <!-- 6 MAXPOOLING2D (2º) -->
+    <div class="scene" data-scene="pool2" hidden>
+      <div class="flow">
+        <figure class="fig"><canvas id="p2In" data-max="310" aria-label="Mapa de 29 por 29 com a janela 2 por 2 e a sobra riscada"></canvas><figcaption id="p2InCap"></figcaption></figure>
+        <div class="calc">
+          <div class="calc-row">
+            <div class="mat" data-link="window"><div class="mat-lbl">Os 4 números da janela 2 × 2</div><div class="g2" id="p2Four"></div></div>
+            <div class="op" aria-hidden="true">→</div>
+            <div class="mat"><div class="mat-lbl">Fica o maior</div><div class="cell big" id="p2Max"></div></div>
+          </div>
+          <div class="sumline" id="p2Sum"></div>
+        </div>
+        <figure class="fig"><canvas id="p2Out" aria-label="Mapa de 14 por 14"></canvas><figcaption>Mapa <b>14 × 14</b></figcaption></figure>
+      </div>
+      <div class="under"><span class="why on">29 ÷ 2 = 14,5. A última linha e a última coluna (riscadas) não formam um 2 × 2 completo e ficam de fora: saem <b>14</b>.</span></div>
+      <div class="gal-head"><h3>Os 32 mapas, agora com 14 × 14</h3><p class="note">Clique em um mapa para usá-lo na animação.</p></div>
+      <div class="gallery g32" id="p2Gallery"></div>
+    </div>
+
+    <!-- 7 FLATTEN -->
+    <div class="scene" data-scene="flat" hidden>
+      <div class="flow flow-2" style="align-items:center">
+        <div class="fig"><div class="maps32" id="flMaps"></div><figcaption><b>32 mapas de 14 × 14.</b> O quadradinho marca a posição que está entrando na fila.</figcaption></div>
+        <div class="calc">
+          <div class="mat-lbl" id="flPacketLbl" style="max-width:none;min-height:0"></div>
+          <div class="packet" id="flPacket"></div>
+          <div class="sumline" id="flSum"></div>
+        </div>
+      </div>
+      <div class="strip-wrap" data-link="flat">
+        <canvas id="flStrip" aria-label="A fila com 6.272 números"></canvas>
+        <div class="strip-meta"><span>A fila: <b id="flCount">0</b> de <b>6.272</b> números</span><span>14 × 14 × 32 = <b>6.272</b></span></div>
+      </div>
+    </div>
+
+    <!-- 8 DENSE(32) -->
+    <div class="scene" data-scene="dense1" hidden>
+      <div class="flow flow-2" style="align-items:center">
+        <div class="fig" data-link="count"><canvas id="d1Net" class="net" aria-label="A fila de 6.272 números ligada aos 32 neurônios"></canvas><figcaption>À esquerda, a fila de <b>6.272 números</b>. À direita, os <b>32 neurônios</b>. Cada neurônio se liga a todos os números da fila.</figcaption></div>
+        <div class="calc">
+          <div class="mat-lbl" id="d1Title" style="max-width:none;min-height:0;font-size:17px;color:var(--text);font-weight:700"></div>
+          <div class="terms" id="d1Terms"></div>
+          <div class="progress" aria-hidden="true"><i id="d1Prog"></i></div>
+          <div class="sumline" id="d1Sum"></div>
+          <div class="relu-row" data-link="relu"><svg id="d1Relu" viewBox="0 0 150 96" aria-hidden="true"></svg><span class="rr-text" id="d1ReluTxt"></span></div>
+        </div>
+      </div>
+      <div class="gal-head"><h3>A saída da Dense(32): 32 números, um por neurônio</h3><p class="note">Pesos de exemplo; os de verdade são aprendidos no treino.</p></div>
+      <div class="outs32" id="d1Outs"></div>
+    </div>
+
+    <!-- 9 DENSE(2) -->
+    <div class="scene" data-scene="dense2" hidden>
+      <div class="flow flow-d2">
+        <div class="fig" data-link="count"><canvas id="d2Net" data-max="300" aria-label="Os 32 neurônios ligados aos 2 neurônios de saída"></canvas><figcaption>32 números entram em <b>2 neurônios</b>. Cada um tem 32 pesos + 1 bias.</figcaption></div>
+        <div class="panel">
+          <h3>Pontuações dos 2 neurônios</h3>
+          <div class="score-row"><label for="scCat">🐱 cats (gato)</label><input type="range" id="scCat" min="-4" max="4" step="0.1"><output id="scCatOut"></output></div>
+          <div class="score-row"><label for="scDog">🐶 dogs (cachorro)</label><input type="range" id="scDog" min="-4" max="4" step="0.1"><output id="scDogOut"></output></div>
+          <p class="note">Pontuações de exemplo para mostrar o softmax. Arraste para testar; com valores iguais dá 50% e 50%.</p>
+        </div>
+        <div class="panel" data-link="softmax">
+          <h3>Depois do softmax</h3>
+          <div class="bars">
+            <div class="barline" id="blCat"><span class="bl-name">🐱 cats</span><span class="bl-track"><i></i></span><b class="bl-pct"></b></div>
+            <div class="barline" id="blDog"><span class="bl-name">🐶 dogs</span><span class="bl-track"><i></i></span><b class="bl-pct"></b></div>
+          </div>
+          <div class="formula" id="smFormula"></div>
+          <div class="winner" id="smWinner"></div>
+        </div>
+      </div>
+      <div class="real" id="d2Real"></div>
+    </div>
+
+  </section>
+
+</main>
+
+<div class="controls" role="toolbar" aria-label="Controles">
+  <button type="button" class="btn" id="prevBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span>Linha <span class="opt">anterior</span></span></button>
+  <div class="ctl-mid">
+    <button type="button" class="btn primary" id="playBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="playIco" d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg><span id="playTxt">Reproduzir</span></button>
+    <button type="button" class="btn" id="stepBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5v15l10-7.5z M16.5 4.5H19v15h-2.5z" fill="currentColor"/></svg><span>Um passo</span></button>
+    <button type="button" class="btn" id="resetBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 4.5v4h4"/></svg><span class="opt">Recomeçar</span></button>
+    <div class="seg" id="speedSeg" role="group" aria-label="Velocidade da animação"><button type="button" data-speed="slow" aria-pressed="false">Devagar</button><button type="button" data-speed="normal" aria-pressed="true">Normal</button><button type="button" data-speed="fast" aria-pressed="false">Rápido</button></div>
+  </div>
+  <button type="button" class="btn" id="nextBtn"><span><span class="opt">Próxima</span> linha</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+</div>
+
+<footer class="foot">Feito só com as 9 camadas do <b>INFOESTE_CNN.ipynb</b>, na mesma ordem e com os mesmos tamanhos. As fotos são as que aparecem no notebook, já em 64 × 64. Formatos e contas de parâmetros são os reais; os filtros e pesos das animações são exemplos, porque o notebook não guarda os pesos treinados.</footer>
+</div>
+
+<div class="pop" id="pop" role="tooltip" hidden></div>
+
+<dialog id="helpDlg" aria-labelledby="helpTitle">
+  <h2 id="helpTitle">Atalhos para a aula</h2>
+  <dl>
+    <dt><kbd>→</kbd><kbd>Page Down</kbd></dt><dd>Próxima linha do código</dd>
+    <dt><kbd>←</kbd><kbd>Page Up</kbd></dt><dd>Linha anterior</dd>
+    <dt><kbd>Espaço</kbd></dt><dd>Reproduzir ou pausar</dd>
+    <dt><kbd>P</kbd></dt><dd>Um passo</dd>
+    <dt><kbd>R</kbd></dt><dd>Recomeçar a animação</dd>
+    <dt><kbd>0</kbd> a <kbd>9</kbd></dt><dd>Ir direto para a linha (0 é o código completo)</dd>
+    <dt><kbd>F</kbd></dt><dd>Tela cheia</dd>
+  </dl>
+  <p class="note">Passadores de slide também funcionam: eles enviam Page Up e Page Down.</p>
+  <form method="dialog" style="margin-top:14px;text-align:right"><button class="btn" type="submit">Fechar</button></form>
+</dialog>
+
+<script id="photoData" type="application/json">{"cats": "data:image/jpeg;base64,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", "dogs": "data:image/jpeg;base64,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"}</script>
+<script>
+(() => {
+'use strict';
+
+/* =========================================================
+   1. Utilidades
+   ========================================================= */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = t => (t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+function fmt(v, d = 2) {
+  if (!isFinite(v)) return '—';
+  let s = Math.abs(v).toFixed(d);
+  const zero = Number(s) === 0;
+  s = s.replace('.', ',');
+  return (v < 0 && !zero ? '−' : '') + s;
+}
+function fint(v) {
+  const r = Math.round(v);
+  const s = String(Math.abs(r)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return (r < 0 ? '−' : '') + s;
+}
+const fw = v => (Math.abs(v - Math.round(v)) < 1e-9 ? fint(v) : fmt(v, 2));
+const fsg = v => (Number(Math.abs(v).toFixed(2)) === 0 ? fmt(0) : (v > 0 ? '+' : '') + fmt(v));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('infoeste-cnn:' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('infoeste-cnn:' + k, JSON.stringify(v)); } catch (e) { /* sem armazenamento */ } }
+};
+function mulberry32(a) {
+  return () => {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function el(tag, cls, txt) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (txt != null) e.textContent = txt;
+  return e;
+}
+
+/* =========================================================
+   2. Cores dos mapas (paleta da apresentação)
+   ========================================================= */
+function buildLUT(stops) {
+  const lut = new Uint8ClampedArray(256 * 3);
+  for (let i = 0; i < 256; i++) {
+    const t = i / 255;
+    let k = 0;
+    while (k < stops.length - 2 && t > stops[k + 1][0]) k++;
+    const [t0, c0] = stops[k], [t1, c1] = stops[k + 1];
+    const u = clamp((t - t0) / ((t1 - t0) || 1), 0, 1);
+    for (let j = 0; j < 3; j++) lut[i * 3 + j] = Math.round(lerp(c0[j], c1[j], u));
+  }
+  return lut;
+}
+const LUT_POS = buildLUT([[0, [11, 16, 32]], [.26, [72, 34, 160]], [.5, [168, 56, 168]], [.7, [255, 84, 124]], [.87, [255, 176, 46]], [1, [255, 247, 205]]]);
+const LUT_NEG = buildLUT([[0, [11, 16, 32]], [.55, [46, 98, 232]], [1, [196, 220, 255]]]);
+const EMPTY = [25, 34, 70];
+function colorAt(t, out, o) {
+  const lut = t < 0 ? LUT_NEG : LUT_POS;
+  const i = Math.round(clamp(Math.abs(t), 0, 1) * 255) * 3;
+  out[o] = lut[i]; out[o + 1] = lut[i + 1]; out[o + 2] = lut[i + 2]; out[o + 3] = 255;
+}
+function cssOf(t) { const a = [0, 0, 0, 0]; colorAt(t, a, 0); return `rgb(${a[0]},${a[1]},${a[2]})`; }
+const textOn = t => (Math.abs(t) > .6 ? '#0B1020' : '#F4F6FF');
+
+/* =========================================================
+   3. Tema
+   ========================================================= */
+const T = {};
+function readTheme() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k of ['cyan', 'violet', 'pink', 'lime', 'amber', 'blue', 'text', 'muted', 'faint', 'line', 'line-strong', 'surface', 'surface-2', 'bg', 'mono']) {
+    T[k] = cs.getPropertyValue('--' + k).trim();
+  }
+}
+function hexRgb(h) {
+  h = (h || '#000').replace('#', '');
+  if (h.length === 3) h = h.split('').map(c => c + c).join('');
+  const n = parseInt(h, 16);
+  return [n >> 16 & 255, n >> 8 & 255, n & 255];
+}
+const rgba = (hex, a) => { const [r, g, b] = hexRgb(hex); return `rgba(${r},${g},${b},${a})`; };
+function effectiveTheme() {
+  const d = document.documentElement.getAttribute('data-theme');
+  if (d === 'dark' || d === 'light') return d;
+  return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+/* =========================================================
+   4. Canvas
+   ========================================================= */
+const DPR = () => Math.min(window.devicePixelRatio || 1, 2);
+function fit(cv, w, h) {
+  const d = DPR();
+  const W = Math.max(1, Math.round(w * d)), H = Math.max(1, Math.round(h * d));
+  if (cv.width !== W) cv.width = W;
+  if (cv.height !== H) cv.height = H;
+  cv.style.width = w + 'px';
+  cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(d, 0, 0, d, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0, 0, w, h);
+  return ctx;
+}
+function avail(cv, minus = 0) {
+  const max = +cv.dataset.max || 320;
+  const host = cv.closest('.fig') || cv.parentElement;
+  const w = (host.clientWidth || max) - minus;
+  return Math.max(110, Math.floor(Math.min(max, w)));
+}
+const scratch = {};
+function scr(w, h) {
+  const k = w + 'x' + h;
+  let c = scratch[k];
+  if (!c) { c = document.createElement('canvas'); c.width = w; c.height = h; scratch[k] = c; }
+  return c;
+}
+function mapMax(data, W, C, ch, pre) {
+  let m = 0;
+  for (let i = 0; i < W * W; i++) {
+    const v = pre ? Math.abs(data[i * C + ch]) : data[i * C + ch];
+    if (v > m) m = v;
+  }
+  return m > 0 ? m : 1;
+}
+function paintMap(ctx, x, y, size, data, W, C, ch, o = {}) {
+  const sc = scr(W, W), s = sc.getContext('2d'), img = s.createImageData(W, W), d = img.data;
+  const mx = o.max || mapMax(data, W, C, ch, o.pre);
+  const upto = o.upto == null ? W * W - 1 : o.upto;
+  for (let i = 0; i < W * W; i++) {
+    const k = i * 4;
+    if (i > upto) { d[k] = EMPTY[0]; d[k + 1] = EMPTY[1]; d[k + 2] = EMPTY[2]; d[k + 3] = 255; continue; }
+    const v = data[i * C + ch];
+    colorAt(o.pre ? v / mx : Math.max(0, v) / mx, d, k);
+  }
+  s.putImageData(img, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(sc, x, y, size, size);
+}
+function strokeBox(ctx, x, y, w, h, color, lw, glow) {
+  ctx.save();
+  if (glow) { ctx.shadowColor = color; ctx.shadowBlur = 10; }
+  ctx.strokeStyle = color; ctx.lineWidth = lw;
+  ctx.strokeRect(x, y, w, h);
+  ctx.restore();
+}
+
+/* =========================================================
+   5. O modelo: mesmas camadas e formatos do notebook.
+      Os pesos são de exemplo (o notebook não guarda os treinados).
+   ========================================================= */
+const LUM = [.299, .587, .114];
+const AVG = v => [[v, v, v], [v, v, v], [v, v, v]];
+const F1 = [
+  { name: 'Borda vertical, fica claro à direita', short: 'Borda, claro à direita', K: [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], mix: LUM, rec: 'lum', b: 0 },
+  { name: 'Borda vertical, fica claro à esquerda', short: 'Borda, claro à esquerda', K: [[1, 0, -1], [2, 0, -2], [1, 0, -1]], mix: LUM, rec: 'lum', b: 0 },
+  { name: 'Borda horizontal, fica claro embaixo', short: 'Borda, claro embaixo', K: [[-1, -2, -1], [0, 0, 0], [1, 2, 1]], mix: LUM, rec: 'lum', b: 0 },
+  { name: 'Borda horizontal, fica claro em cima', short: 'Borda, claro em cima', K: [[1, 2, 1], [0, 0, 0], [-1, -2, -1]], mix: LUM, rec: 'lum', b: 0 },
+  { name: 'Diagonal, fica claro embaixo à direita', short: 'Diagonal ↘', K: [[-2, -1, 0], [-1, 0, 1], [0, 1, 2]], mix: LUM, rec: 'lum', b: 0 },
+  { name: 'Diagonal, fica claro embaixo à esquerda', short: 'Diagonal ↙', K: [[0, -1, -2], [1, 0, -1], [2, 1, 0]], mix: LUM, rec: 'lum', b: 0 },
+  { name: 'Ponto mais claro que a vizinhança', short: 'Ponto claro', K: [[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]], mix: LUM, rec: 'lum', b: 0 },
+  { name: 'Ponto mais escuro que a vizinhança', short: 'Ponto escuro', K: [[1, 1, 1], [1, -8, 1], [1, 1, 1]], mix: LUM, rec: 'lum', b: 0 },
+  { name: 'Região clara', short: 'Região clara', K: AVG(1 / 9), mix: LUM, rec: 'lum', b: -.55 },
+  { name: 'Região escura', short: 'Região escura', K: AVG(-1 / 9), mix: LUM, rec: 'lum', b: .45 },
+  { name: 'Mais vermelho que verde e azul', short: 'Avermelhado', K: AVG(1 / 9), mix: [1, -.5, -.5], rec: 'r', b: 0 },
+  { name: 'Mais verde que vermelho e azul', short: 'Esverdeado', K: AVG(1 / 9), mix: [-.5, 1, -.5], rec: 'g', b: 0 },
+  { name: 'Mais azul que vermelho e verde', short: 'Azulado', K: AVG(1 / 9), mix: [-.5, -.5, 1], rec: 'b', b: 0 },
+  { name: 'Textura: muda muito de um pixel para o outro', short: 'Textura', K: [[1, -2, 1], [-2, 4, -2], [1, -2, 1]], mix: LUM, rec: 'lum', b: 0 },
+  { name: 'Traço vertical fino', short: 'Traço vertical', K: [[-1, 2, -1], [-1, 2, -1], [-1, 2, -1]], mix: LUM, rec: 'lum', b: 0 },
+  { name: 'Traço horizontal fino', short: 'Traço horizontal', K: [[-1, -1, -1], [2, 2, 2], [-1, -1, -1]], mix: LUM, rec: 'lum', b: 0 }
+];
+const RECIPE = {
+  lum: { lbl: 'Brilho dos 9 pixels', txt: 'O filtro tem 3 × 3 × 3 = 27 pesos (um 3 × 3 para cada cor). Aqui eles aparecem juntos: estes 9 pesos aplicados ao brilho de cada pixel, 0,30·R + 0,59·G + 0,11·B.' },
+  r: { lbl: 'Vermelho a mais nos 9 pixels', txt: 'O filtro tem 3 × 3 × 3 = 27 pesos. Aqui eles aparecem juntos: estes 9 pesos aplicados a R − G/2 − B/2, que mede o quanto o pixel é mais vermelho.' },
+  g: { lbl: 'Verde a mais nos 9 pixels', txt: 'O filtro tem 3 × 3 × 3 = 27 pesos. Aqui eles aparecem juntos: estes 9 pesos aplicados a G − R/2 − B/2, que mede o quanto o pixel é mais verde.' },
+  b: { lbl: 'Azul a mais nos 9 pixels', txt: 'O filtro tem 3 × 3 × 3 = 27 pesos. Aqui eles aparecem juntos: estes 9 pesos aplicados a B − R/2 − G/2, que mede o quanto o pixel é mais azul.' }
+};
+
+function toInput(rgbaData) {
+  const u8 = new Uint8Array(64 * 64 * 3), x = new Float32Array(64 * 64 * 3);
+  for (let i = 0; i < 4096; i++) for (let c = 0; c < 3; c++) {
+    const v = rgbaData[i * 4 + c];
+    u8[i * 3 + c] = v;
+    x[i * 3 + c] = v / 255;          // Rescaling(1/255)
+  }
+  return { u8, x };
+}
+function mixed(x, mix) {
+  const m = new Float32Array(4096);
+  for (let i = 0; i < 4096; i++) m[i] = mix[0] * x[i * 3] + mix[1] * x[i * 3 + 1] + mix[2] * x[i * 3 + 2];
+  return m;
+}
+function conv1(x) {                   // Conv2D(16, 3): 64×64×3 → 62×62×16 (padding "valid")
+  const pre = new Float32Array(62 * 62 * 16);
+  for (let f = 0; f < 16; f++) {
+    const { K, mix, b } = F1[f], m = mixed(x, mix);
+    for (let y = 0; y < 62; y++) for (let xx = 0; xx < 62; xx++) {
+      let s = b;
+      for (let ky = 0; ky < 3; ky++) {
+        const row = (y + ky) * 64 + xx;
+        s += K[ky][0] * m[row] + K[ky][1] * m[row + 1] + K[ky][2] * m[row + 2];
+      }
+      pre[(y * 62 + xx) * 16 + f] = s;
+    }
+  }
+  return pre;
+}
+function relu(a) { const o = new Float32Array(a.length); for (let i = 0; i < a.length; i++) o[i] = a[i] > 0 ? a[i] : 0; return o; }
+function pool(a, W, C) {              // MaxPooling2D(): janela 2×2, passo 2, sobra descartada
+  const O = Math.floor(W / 2), o = new Float32Array(O * O * C);
+  for (let y = 0; y < O; y++) for (let x = 0; x < O; x++) for (let c = 0; c < C; c++) {
+    const i = ((2 * y) * W + 2 * x) * C + c;
+    o[(y * O + x) * C + c] = Math.max(a[i], a[i + C], a[i + W * C], a[i + W * C + C]);
+  }
+  return o;
+}
+let W2, B2, META2, W3, B3;
+const KB = [[1, 2, 1], [2, 4, 2], [1, 2, 1]].map(r => r.map(v => v / 16));
+const KC = [[0, 0, 0], [0, 1, 0], [0, 0, 0]];
+const KX = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]].map(r => r.map(v => v / 4));
+const KY = [[-1, -2, -1], [0, 0, 0], [1, 2, 1]].map(r => r.map(v => v / 4));
+function buildW2(norm) {
+  const rnd = mulberry32(2026);
+  W2 = new Float32Array(32 * 144); B2 = new Float32Array(32); META2 = [];
+  for (let f = 0; f < 32; f++) {
+    const a = f % 16, b = (a + 1 + (f * 7) % 15) % 16, diff = f >= 16, KA = [KB, KC, KX, KY][f % 4];
+    for (let k = 0; k < 9; k++) {
+      const ky = (k / 3) | 0, kx = k % 3;
+      for (let c = 0; c < 16; c++) {
+        let w = (rnd() * 2 - 1) * .04 * norm[c];
+        if (c === a) w = KA[ky][kx] * norm[a];
+        else if (c === b) w = (diff ? -1 : 1) * KB[ky][kx] * norm[b];
+        W2[f * 144 + k * 16 + c] = w;
+      }
+    }
+    B2[f] = diff ? -.04 : -.3;
+    META2.push({ a, b, diff });
+  }
+}
+function conv2(p) {                   // Conv2D(32, 3): 31×31×16 → 29×29×32
+  const pre = new Float32Array(29 * 29 * 32);
+  for (let y = 0; y < 29; y++) for (let x = 0; x < 29; x++) for (let f = 0; f < 32; f++) {
+    let s = B2[f];
+    const wf = f * 144;
+    for (let ky = 0; ky < 3; ky++) for (let kx = 0; kx < 3; kx++) {
+      const base = ((y + ky) * 31 + x + kx) * 16, wk = wf + (ky * 3 + kx) * 16;
+      for (let c = 0; c < 16; c++) s += W2[wk + c] * p[base + c];
+    }
+    pre[(y * 29 + x) * 32 + f] = s;
+  }
+  return pre;
+}
+function buildW3(meanSq) {
+  const rnd = mulberry32(77);
+  const sc = 1.3 / Math.sqrt(6272 * Math.max(meanSq, 1e-6) / 3);
+  W3 = new Float32Array(32 * 6272);
+  for (let i = 0; i < W3.length; i++) W3[i] = (rnd() * 2 - 1) * sc;
+  B3 = new Float32Array(32);
+  for (let j = 0; j < 32; j++) B3[j] = (rnd() * 2 - 1) * .15;
+}
+function dense1(flat) {               // Dense(32): 6.272 → 32
+  const pre = new Float32Array(32);
+  for (let j = 0; j < 32; j++) {
+    let s = B3[j];
+    const o = j * 6272;
+    for (let i = 0; i < 6272; i++) s += W3[o + i] * flat[i];
+    pre[j] = s;
+  }
+  return pre;
+}
+const M = {};
+function buildModel(rgbaBy) {
+  const keys = Object.keys(rgbaBy);
+  for (const k of keys) {
+    const inp = toInput(rgbaBy[k]);
+    const c1pre = conv1(inp.x), c1 = relu(c1pre), p1 = pool(c1, 62, 16);
+    M[k] = { ...inp, c1pre, c1, p1 };
+  }
+  const norm = new Float32Array(16);
+  for (let c = 0; c < 16; c++) {
+    const vals = [];
+    for (const k of keys) { const p = M[k].p1; for (let i = 0; i < 961; i++) vals.push(p[i * 16 + c]); }
+    vals.sort((a, b) => a - b);
+    const q = vals[Math.floor(vals.length * .99)];
+    norm[c] = q > 1e-6 ? 1 / q : 1;
+  }
+  buildW2(norm);
+  let sq = 0, n = 0;
+  for (const k of keys) {
+    const m = M[k];
+    m.c2pre = conv2(m.p1); m.c2 = relu(m.c2pre); m.p2 = pool(m.c2, 29, 32);   // Flatten = p2 lido em fila
+    for (let i = 0; i < 6272; i++) { sq += m.p2[i] * m.p2[i]; n++; }
+    const s = Array.from(m.p2).sort((a, b) => a - b);
+    m.p2hi = s[Math.floor(s.length * .995)] || 1;
+  }
+  buildW3(sq / n);
+  for (const k of keys) { const m = M[k]; m.d1pre = dense1(m.p2); m.d1 = relu(m.d1pre); }
+}
+
+/* =========================================================
+   6. Conteúdo de cada linha do código
+   ========================================================= */
+const PRE = { t: 'tf.keras.layers.', c: 'pre' };
+const STEPS = [
+  { id: 'overview', group: 'geral', line: 0,
+    code: [{ t: 'modelo = tf.keras.', c: 'pre' }, { t: 'Sequential', c: 'fn' }, { t: '([ … 9 linhas … ])', c: 'pun' }],
+    say: 'Uma foto entra em cima e duas porcentagens saem embaixo. Cada linha do código transforma os números da foto.',
+    shpIn: '64 × 64 × 3', shpOut: '2 porcentagens',
+    params: '<b>205.890</b> parâmetros no total, aprendidos no treino',
+    ask: ['O que entra e o que sai desta rede?', 'Entra uma foto de 64 × 64 pixels com 3 cores. Saem 2 números: a porcentagem de gato e a de cachorro.'],
+    notes: 'Aperte Reproduzir e mostre a trilha de cima: a foto fica menor e ganha camadas (os mapas), vira uma fila e, no fim, dois números. Depois digite o modelo no Colab linha por linha e volte aqui a cada linha digitada (seta para a direita ou passador de slide).' },
+  { id: 'input', group: 'entrada', line: 1,
+    code: [PRE, { t: 'Input', c: 'fn' }, { t: '(shape=(', c: 'pun' },
+      { t: '64, 64', tok: 'size', color: 'cyan', tip: '<b>64, 64</b> = altura e largura da foto, em pixels.' }, { t: ', ', c: 'pun' },
+      { t: '3', tok: 'channels', color: 'amber', tip: '<b>3</b> = três números por pixel: vermelho, verde e azul (RGB).' }, { t: ')),', c: 'pun' }],
+    say: 'A foto entra como uma grade de 64 × 64 pixels. Cada pixel guarda 3 números: vermelho, verde e azul.',
+    shpIn: 'a foto', shpOut: '64 × 64 × 3',
+    params: '<b>0</b> parâmetros: só avisa o formato que vai chegar',
+    ask: ['Se a foto é 64 × 64 × 3, o que significa cada número?', '64 pixels de altura, 64 pixels de largura e 3 números de cor por pixel (vermelho, verde e azul).'],
+    notes: 'Passe o mouse no olho do gato: aparecem os 3 números daquele pixel. Diga que, para o computador, a foto é só uma tabela de números. Aperte Reproduzir para separar as 3 cores; somadas, elas formam a foto colorida. O Input não aprende nada: só declara o formato.' },
+  { id: 'rescale', group: 'entrada', line: 2,
+    code: [PRE, { t: 'Rescaling', c: 'fn' }, { t: '(', c: 'pun' },
+      { t: '1/255', tok: 'divide', color: 'amber', tip: '<b>1/255</b> = multiplica cada número por 1/255, ou seja, divide por 255.' }, { t: '),', c: 'pun' }],
+    say: 'Divide cada número por 255. Em vez de ir de 0 a 255, cada cor passa a ir de 0 a 1.',
+    shpIn: '64 × 64 × 3', shpOut: '64 × 64 × 3',
+    params: '<b>0</b> parâmetros: só divide',
+    ask: ['Por que dividir por 255?', 'Porque 255 é o maior valor possível de uma cor. Depois da divisão, todos os números ficam entre 0 e 1.'],
+    notes: 'Aperte Reproduzir e mostre os números virando decimais: 255 vira 1 e 128 vira cerca de 0,5. A foto não muda de cara. Números pequenos deixam o treino mais estável. Como essa camada está dentro do modelo, a foto do upload também é dividida automaticamente.' },
+  { id: 'conv1', group: 'oculta', line: 3,
+    code: [PRE, { t: 'Conv2D', c: 'fn' }, { t: '(', c: 'pun' },
+      { t: '16', tok: 'count', color: 'amber', tip: '<b>16</b> = quantidade de filtros. Cada filtro gera um mapa, então saem 16 mapas.' }, { t: ', ', c: 'pun' },
+      { t: '3', tok: 'window', color: 'cyan', tip: '<b>3</b> = tamanho do filtro: uma janela de 3 × 3 pixels.' }, { t: ', ', c: 'pun' },
+      { t: 'activation="relu"', tok: 'relu', color: 'lime', tip: '<b>ReLU</b> = depois da conta, número negativo vira 0 e positivo continua igual.' }, { t: '),', c: 'pun' }],
+    say: 'Um filtro é uma janelinha 3 × 3 que passa pela foto inteira procurando um padrão. Com 16 filtros, saem 16 mapas.',
+    shpIn: '64 × 64 × 3', shpOut: '62 × 62 × 16',
+    params: '(3 × 3 × 3 + 1) × 16 = <b>448</b> parâmetros',
+    ask: ['Por que sai 62 × 62, e não 64 × 64?', 'A janela 3 × 3 não pode sair da foto, então só cabe em 62 posições por linha: 64 − 3 + 1 = 62.'],
+    notes: 'Use Um passo e leia a conta em voz alta: 9 números da foto vezes 9 pesos, tudo somado. Depois aperte Reproduzir no Rápido e mostre o mapa aparecendo. Clique em outros filtros: cada um acende partes diferentes da foto. Avise que estes filtros são exemplos; os de verdade a rede aprende sozinha no treino.' },
+  { id: 'pool1', group: 'oculta', line: 4,
+    code: [PRE, { t: 'MaxPooling2D', c: 'fn' },
+      { t: '()', tok: 'window', color: 'cyan', tip: 'Parênteses vazios = configuração padrão: janela de <b>2 × 2</b>, andando de 2 em 2.' }, { t: ',', c: 'pun' }],
+    say: 'De cada quadradinho 2 × 2, fica só o maior número. Cada mapa fica com metade da altura e metade da largura.',
+    shpIn: '62 × 62 × 16', shpOut: '31 × 31 × 16',
+    params: '<b>0</b> parâmetros: só escolhe o maior',
+    ask: ['Depois do MaxPooling, quantos mapas continuam existindo?', 'Os mesmos 16. Só a altura e a largura caem pela metade: 62 vira 31.'],
+    notes: 'Use a palavra resumir: de cada quadradinho 2 × 2, guardamos o sinal mais forte. Compare os dois mapas: o da direita tem metade do tamanho, mas o desenho continua parecido. A rede fica mais leve e o padrão encontrado continua lá.' },
+  { id: 'conv2', group: 'oculta', line: 5,
+    code: [PRE, { t: 'Conv2D', c: 'fn' }, { t: '(', c: 'pun' },
+      { t: '32', tok: 'count', color: 'amber', tip: '<b>32</b> = quantidade de filtros. Saem 32 mapas.' }, { t: ', ', c: 'pun' },
+      { t: '3', tok: 'window', color: 'cyan', tip: '<b>3</b> = janela de 3 × 3, que agora atravessa os 16 mapas de uma vez.' }, { t: ', ', c: 'pun' },
+      { t: 'activation="relu"', tok: 'relu', color: 'lime', tip: '<b>ReLU</b> de novo: negativo vira 0.' }, { t: '),', c: 'pun' }],
+    say: 'Agora a janela 3 × 3 atravessa os 16 mapas de uma vez e soma o que eles encontraram. Com 32 filtros, saem 32 mapas.',
+    shpIn: '31 × 31 × 16', shpOut: '29 × 29 × 32',
+    params: '(3 × 3 × 16 + 1) × 32 = <b>4.640</b> parâmetros',
+    ask: ['Quantos números um filtro desta camada olha de uma vez?', '3 × 3 × 16 = 144: um quadradinho 3 × 3 em cada um dos 16 mapas.'],
+    notes: 'Compare com a primeira convolução: antes a janela olhava as 3 cores; agora atravessa os 16 mapas e soma as 16 partes. Por isso ela combina o que já foi encontrado, como uma borda junto de uma região escura. São 32 filtros, então saem 32 mapas de 29 × 29.' },
+  { id: 'pool2', group: 'oculta', line: 6,
+    code: [PRE, { t: 'MaxPooling2D', c: 'fn' },
+      { t: '()', tok: 'window', color: 'cyan', tip: 'De novo o padrão: janela de <b>2 × 2</b>, andando de 2 em 2.' }, { t: ',', c: 'pun' }],
+    say: 'De novo fica o maior de cada 2 × 2. Como 29 é ímpar, a última linha e a última coluna ficam de fora.',
+    shpIn: '29 × 29 × 32', shpOut: '14 × 14 × 32',
+    params: '<b>0</b> parâmetros',
+    ask: ['29 dividido por 2 dá 14,5. Por que sai 14?', 'A última linha e a última coluna não formam um quadrado 2 × 2 completo, então ficam de fora.'],
+    notes: 'Mostre a faixa riscada na borda do mapa: é a sobra que o pooling ignora. Saem 32 mapas de 14 × 14, prontos para virar uma fila.' },
+  { id: 'flat', group: 'oculta', line: 7,
+    code: [PRE, { t: 'Flatten', c: 'fn' },
+      { t: '()', tok: 'flat', color: 'violet', tip: 'Sem configuração e sem nada para aprender: só coloca todos os números em <b>uma fila</b>.' }, { t: ',', c: 'pun' }],
+    say: 'Pega os 32 mapas de 14 × 14 e coloca todos os números em uma fila só: 6.272 números.',
+    shpIn: '14 × 14 × 32', shpOut: '6.272',
+    params: '<b>0</b> parâmetros: só reorganiza',
+    ask: ['Quantos números saem do Flatten?', '14 × 14 × 32 = 6.272. Nenhum número some: só muda a organização.'],
+    notes: 'A Dense seguinte recebe os números em fila. O Flatten pega os 32 números de cada posição (um de cada mapa) e vai enfileirando, posição por posição. Não aprende nada: 0 parâmetros.' },
+  { id: 'dense1', group: 'oculta', line: 8,
+    code: [PRE, { t: 'Dense', c: 'fn' }, { t: '(', c: 'pun' },
+      { t: '32', tok: 'count', color: 'amber', tip: '<b>32</b> = quantidade de neurônios. Cada um devolve 1 número.' }, { t: ', ', c: 'pun' },
+      { t: 'activation="relu"', tok: 'relu', color: 'lime', tip: '<b>ReLU</b>: se a soma do neurônio der negativa, ele devolve 0.' }, { t: '),', c: 'pun' }],
+    say: '32 neurônios. Cada um olha os 6.272 números da fila, multiplica cada um por um peso, soma tudo e passa pela ReLU.',
+    shpIn: '6.272', shpOut: '32',
+    params: '(6.272 + 1) × 32 = <b>200.736</b> parâmetros, 97,5% de toda a rede',
+    ask: ['Por que essa camada tem tantos parâmetros?', 'Cada um dos 32 neurônios tem um peso para cada um dos 6.272 números, mais 1 bias: (6.272 + 1) × 32 = 200.736.'],
+    notes: 'Use a ideia de importância: cada neurônio dá um peso diferente para cada número da fila e soma tudo. Depois vem a ReLU. Os pesos daqui são de exemplo; os verdadeiros são aprendidos no treino. Quase toda a rede (97,5% dos parâmetros) mora nesta camada.' },
+  { id: 'dense2', group: 'saida', line: 9,
+    code: [PRE, { t: 'Dense', c: 'fn' }, { t: '(', c: 'pun' },
+      { t: '2', tok: 'count', color: 'amber', tip: '<b>2</b> = dois neurônios: um para cats (gato) e um para dogs (cachorro).' }, { t: ', ', c: 'pun' },
+      { t: 'activation="softmax"', tok: 'softmax', color: 'pink', tip: '<b>Softmax</b> = transforma as 2 pontuações em porcentagens que somam 100%.' }, { t: ')', c: 'pun' }],
+    say: 'Dois neurônios dão uma pontuação para gato e outra para cachorro. O softmax transforma as pontuações em porcentagens que somam 100%.',
+    shpIn: '32', shpOut: '2 porcentagens',
+    params: '(32 + 1) × 2 = <b>66</b> parâmetros',
+    ask: ['Se mandarmos a foto de um carro, o que a rede responde?', 'Gato ou cachorro, mesmo assim. Ela só conhece essas duas classes e é obrigada a escolher uma.'],
+    notes: 'Arraste as pontuações: quando ficam iguais, dá 50% e 50%. O programa escolhe a maior porcentagem com argmax: posição 0 é cats e posição 1 é dogs. Lembre que uma porcentagem alta não é garantia de acerto.' }
+];
+const TRAIL = [
+  { name: 'Código', shape: 'completo' }, { name: 'Input', shape: '64×64×3' }, { name: 'Rescaling', shape: '64×64×3' },
+  { name: 'Conv2D(16)', shape: '62×62×16' }, { name: 'MaxPooling2D', shape: '31×31×16' }, { name: 'Conv2D(32)', shape: '29×29×32' },
+  { name: 'MaxPooling2D', shape: '14×14×32' }, { name: 'Flatten', shape: '6.272' }, { name: 'Dense(32)', shape: '32' }, { name: 'Dense(2)', shape: '2' }
+];
+const GROUP_LABEL = { entrada: 'camada de entrada', oculta: 'camada oculta', saida: 'camada de saída', geral: '' };
+const NOTEBOOK = {
+  cats: { short: 'No notebook, a IA respondeu <b>cats</b> para esta foto, e a resposta correta era cats.',
+    lines: ['Resposta correta: cats', 'Resposta da IA: cats'], lead: 'No notebook, com esta foto da validação:', extra: '' },
+  dogs: { short: 'No notebook, a IA escolheu <b>dogs</b> para esta foto enviada no upload.',
+    lines: ['A IA escolheu: dogs'], lead: 'No notebook, esta foto foi enviada pelo upload:', extra: 'O notebook não registra qual era a resposta correta dessa foto.' }
+};
+
+/* =========================================================
+   7. Estado
+   ========================================================= */
+const MAX = { overview: 9, input: 1, rescale: 1, conv1: 3844, pool1: 961, conv2: 841, pool2: 196, flat: 196, dense1: 32, dense2: 1 };
+const RATES = {
+  overview: { slow: .5, normal: 1.1, fast: 3 }, input: { slow: .4, normal: .8, fast: 2 }, rescale: { slow: .2, normal: .4, fast: 1 },
+  conv1: { slow: 2, normal: 120, fast: 800 }, pool1: { slow: 2, normal: 60, fast: 320 }, conv2: { slow: 1.5, normal: 50, fast: 280 },
+  pool2: { slow: 2, normal: 15, fast: 80 }, flat: { slow: 1.5, normal: 10, fast: 50 }, dense1: { slow: .35, normal: 1.2, fast: 6 },
+  dense2: { slow: .3, normal: .6, fast: 1.5 }
+};
+const S = {
+  step: 0, photo: 'cats', speed: store.get('speed', 'normal'), pos: {}, playing: false, dir: 1,
+  f1: 0, f2: 0, px: { cats: { x: 50, y: 18 }, dogs: { x: 7, y: 23 } }, pxLock: false,
+  rsChan: 0, c1Mode: 'post', hl: null, pin: null, scores: { cats: [2, 1], dogs: [1, 2] }
+};
+if (!RATES.conv1[S.speed]) S.speed = 'normal';
+for (const k in MAX) S.pos[k] = 0;
+S.pos.dense2 = 1;
+const photoCv = {}, chanCv = {};
+const thumbCache = new Map();
+function thumb(layer, ch) {
+  const key = S.photo + '|' + layer + '|' + ch;
+  let c = thumbCache.get(key);
+  if (c) return c;
+  const m = M[S.photo];
+  const [data, W, C] = { c1: [m.c1, 62, 16], p1: [m.p1, 31, 16], c2: [m.c2, 29, 32], p2: [m.p2, 14, 32] }[layer];
+  c = document.createElement('canvas'); c.width = W; c.height = W;
+  paintMap(c.getContext('2d'), 0, 0, W, data, W, C, ch);
+  thumbCache.set(key, c);
+  return c;
+}
+
+/* =========================================================
+   8. Trilha (os tensores reais, em escala)
+   ========================================================= */
+const CHEVRON = '<svg class="tsep" viewBox="0 0 12 16" aria-hidden="true"><path d="M3 2l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function buildTrail() {
+  const nav = $('#trail');
+  nav.innerHTML = '';
+  STEPS.forEach((st, i) => {
+    if (i > 0) nav.insertAdjacentHTML('beforeend', CHEVRON);
+    const b = el('button', 'blk');
+    b.type = 'button';
+    b.dataset.i = i;
+    b.dataset.grp = st.group;
+    const tr = TRAIL[i];
+    b.setAttribute('aria-label', i ? `Linha ${i}: ${tr.name}, sai ${tr.shape.replace(/×/g, ' por ')}` : 'Código completo');
+    if (i) b.appendChild(el('span', 'bnum', String(i)));
+    const cv = el('canvas'); cv.setAttribute('aria-hidden', 'true');
+    b.append(cv, el('span', 'bn', tr.name), el('span', 'bs', tr.shape));
+    b.addEventListener('click', () => goTo(i));
+    nav.appendChild(b);
+  });
+}
+const compact = () => innerHeight < 820 && innerWidth > 980;
+function drawTrail() {
+  const k = compact() ? .72 : 1;
+  $$('#trail .blk').forEach((b, i) => drawBlock(b.querySelector('canvas'), STEPS[i].id, k));
+}
+function drawBlock(cv, id, k) {
+  const w = Math.round(92 * k), h = Math.round(82 * k);
+  const ctx = fit(cv, w, h);
+  const m = M[S.photo], s = .88 * k, bx = Math.round(6 * k), by = h - Math.round(3 * k);
+  switch (id) {
+    case 'overview':
+      ctx.fillStyle = T.muted;
+      ctx.font = `700 ${Math.round(27 * k)}px ${T.mono || 'monospace'}`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('</>', w / 2, h / 2 + 2);
+      break;
+    case 'input': case 'rescale': drawPhotoStack(ctx, bx, by, 64 * s, 5 * k); break;
+    case 'conv1': drawStack(ctx, bx, by, 62 * s, 'c1', 16, S.f1, 1.5 * k); break;
+    case 'pool1': drawStack(ctx, bx, by, 31 * s, 'p1', 16, S.f1, 1.5 * k); break;
+    case 'conv2': drawStack(ctx, bx, by, 29 * s, 'c2', 32, S.f2, 1 * k); break;
+    case 'pool2': drawStack(ctx, bx, by, 14 * s, 'p2', 32, S.f2, 1 * k); break;
+    case 'flat': drawBarV(ctx, w / 2 - 6 * k, 5 * k, 12 * k, h - 9 * k, m.p2, m.p2hi); break;
+    case 'dense1': drawDots32(ctx, w, h, m.d1, k); break;
+    case 'dense2': drawDots2(ctx, w, h, k); break;
+  }
+}
+function drawPhotoStack(ctx, bx, by, size, off) {
+  const ch = chanCv[S.photo];
+  [[ch[2], 2], [ch[1], 1]].forEach(([c, L]) => {
+    const x = bx + L * off, y = by - size - L * off;
+    ctx.drawImage(c, x, y, size, size);
+    ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = .7; ctx.strokeRect(x + .5, y + .5, size - 1, size - 1);
+  });
+  ctx.drawImage(photoCv[S.photo], bx, by - size, size, size);
+  ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = 1; ctx.strokeRect(bx + .5, by - size + .5, size - 1, size - 1);
+}
+function drawStack(ctx, bx, by, size, layer, n, front, off) {
+  const order = [front];
+  for (let c = 0; c < n; c++) if (c !== front) order.push(c);
+  for (let L = n - 1; L >= 0; L--) {
+    const x = bx + L * off, y = by - size - L * off;
+    ctx.drawImage(thumb(layer, order[L]), x, y, size, size);
+    ctx.strokeStyle = L === 0 ? 'rgba(255,255,255,.6)' : 'rgba(255,255,255,.2)';
+    ctx.lineWidth = L === 0 ? 1 : .6;
+    ctx.strokeRect(x + .5, y + .5, size - 1, size - 1);
+  }
+}
+function drawBarV(ctx, x, y, w, h, data, hi) {
+  const rows = Math.max(1, Math.round(h)), per = data.length / rows;
+  for (let r = 0; r < rows; r++) {
+    let v = 0;
+    for (let i = Math.floor(r * per); i < Math.floor((r + 1) * per); i++) if (data[i] > v) v = data[i];
+    ctx.fillStyle = cssOf(v / hi);
+    ctx.fillRect(x, y + r * h / rows, w, h / rows + .6);
+  }
+  ctx.strokeStyle = 'rgba(255,255,255,.45)'; ctx.lineWidth = 1; ctx.strokeRect(x + .5, y + .5, w - 1, h - 1);
+}
+function drawDots32(ctx, w, h, d1, k) {
+  let mx = 0; for (const v of d1) if (v > mx) mx = v; mx = mx || 1;
+  const gap = (h - 10 * k) / 16, r = Math.min(2.6 * k, gap / 2 - .4);
+  for (let i = 0; i < 32; i++) {
+    const cx = w / 2 + (i < 16 ? -6 : 6) * k, cy = 5 * k + gap * (i % 16 + .5);
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7);
+    ctx.fillStyle = cssOf(d1[i] / mx); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = .7; ctx.stroke();
+  }
+}
+function softmax2(a, b) { const m = Math.max(a, b), ea = Math.exp(a - m), eb = Math.exp(b - m); return ea / (ea + eb); }
+function drawDots2(ctx, w, h, k) {
+  const [zc, zd] = S.scores[S.photo];
+  const pc = softmax2(zc, zd);
+  [[pc, h / 2 - 15 * k], [1 - pc, h / 2 + 15 * k]].forEach(([p, cy]) => {
+    ctx.beginPath(); ctx.arc(w / 2, cy, 10 * k, 0, 7);
+    ctx.fillStyle = rgba(T.pink, p >= .5 ? 1 : .25); ctx.fill();
+    ctx.lineWidth = 1.5; ctx.strokeStyle = T.pink; ctx.stroke();
+  });
+}
+function markTrail() {
+  $$('#trail .blk').forEach((b, i) => {
+    if (i === S.step) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current');
+  });
+  const cur = $('#trail .blk[aria-current="step"]');
+  if (cur) {
+    const nav = $('#trail'), r = cur.getBoundingClientRect(), nr = nav.getBoundingClientRect();
+    if (r.left < nr.left || r.right > nr.right) nav.scrollBy({ left: r.left - nr.left - nr.width / 2 + r.width / 2, behavior: 'smooth' });
+  }
+}
+
+/* =========================================================
+   9. Cabeçalho: a linha do código com partes clicáveis
+   ========================================================= */
+function renderHead() {
+  const st = STEPS[S.step];
+  $('#app').dataset.group = st.group;
+  $('#kLine').textContent = st.line ? `Linha ${st.line} de 9 do modelo` : 'O modelo inteiro';
+  $('#kGroup').textContent = GROUP_LABEL[st.group];
+  const host = $('#codeLine');
+  host.innerHTML = '';
+  for (const p of st.code) {
+    if (p.tok) {
+      const b = el('button', 'tok', p.t);
+      b.type = 'button';
+      b.dataset.tok = p.tok; b.dataset.tip = p.tip; b.dataset.color = p.color;
+      b.style.setProperty('--tc', `var(--${p.color})`);
+      b.setAttribute('aria-describedby', 'pop');
+      host.appendChild(b);
+    } else host.appendChild(el('span', p.c || '', p.t));
+  }
+  $('#say').textContent = st.say;
+  $('#shpIn').textContent = st.shpIn;
+  $('#shpOut').textContent = st.shpOut;
+  $('#params').innerHTML = st.params;
+  $('#prevBtn').disabled = S.step === 0;
+  $('#nextBtn').disabled = S.step === STEPS.length - 1;
+}
+function showTok(t) {
+  $$('.tok.on').forEach(x => x !== t && x.classList.remove('on'));
+  t.classList.add('on');
+  const pop = $('#pop');
+  pop.innerHTML = t.dataset.tip;
+  pop.style.setProperty('--tc', `var(--${t.dataset.color})`);
+  pop.hidden = false;
+  const r = t.getBoundingClientRect(), pw = pop.offsetWidth, ph = pop.offsetHeight;
+  let top = r.bottom + 10;
+  if (top + ph > innerHeight - 8) top = Math.max(8, r.top - ph - 10);
+  pop.style.left = clamp(r.left + r.width / 2 - pw / 2, 12, innerWidth - pw - 12) + 'px';
+  pop.style.top = top + 'px';
+  const stage = $('#stage');
+  stage.dataset.hl = t.dataset.tok;
+  stage.style.setProperty('--hlc', `var(--${t.dataset.color})`);
+  S.hl = t.dataset.tok;
+  render();
+}
+function hideTok() {
+  S.pin = null;
+  $$('.tok.on').forEach(x => x.classList.remove('on'));
+  $('#pop').hidden = true;
+  delete $('#stage').dataset.hl;
+  if (S.hl) { S.hl = null; render(); }
+}
+
+/* =========================================================
+   10. As telas
+   ========================================================= */
+const R = {};
+
+/* ---- visão geral ---- */
+function buildOverview() {
+  const host = $('#ovCode');
+  host.innerHTML = '';
+  host.appendChild(el('div', 'ov-plain', 'modelo = tf.keras.Sequential(['));
+  STEPS.slice(1).forEach((st, i) => {
+    const b = el('button', 'ovl');
+    b.type = 'button';
+    b.dataset.grp = st.group;
+    b.append(el('span', 'ln', String(i + 1)), el('span', '', '    ' + st.code.map(p => p.t).join('')), el('span', 'sh', TRAIL[i + 1].shape.replace(/×/g, ' × ')));
+    b.setAttribute('aria-label', `Ir para a linha ${i + 1}: ${TRAIL[i + 1].name}`);
+    b.addEventListener('click', () => goTo(i + 1));
+    host.appendChild(b);
+  });
+  host.appendChild(el('div', 'ov-plain', '])'));
+  const parts = [['Conv2D(16)', 448, 'cyan'], ['Conv2D(32)', 4640, 'amber'], ['Dense(32)', 200736, 'violet'], ['Dense(2)', 66, 'pink']];
+  const total = 205890;
+  $('#pbar').innerHTML = parts.map(([n, v, c]) => `<i style="flex:${v} 0 0;background:var(--${c})" title="${n}: ${fint(v)}"></i>`).join('');
+  $('#plegend').innerHTML = parts.map(([n, v, c]) => {
+    const pct = v / total * 100;
+    const p = pct >= 1 ? fmt(pct, 1) : pct >= .1 ? fmt(pct, 1) : fmt(pct, 2);
+    return `<li><span class="sw" style="background:var(--${c})"></span><span>${n}</span><span class="pv">${fint(v)} <span style="color:var(--muted);font-weight:400">(${p}%)</span></span></li>`;
+  }).join('');
+}
+R.overview = () => {
+  const p = S.pos.overview, lit = Math.ceil(p);
+  $$('#ovCode .ovl').forEach((b, k) => {
+    b.classList.toggle('lit', p > 0 && k < lit);
+    b.classList.toggle('now', p > 0 && p < 9 && k === lit - 1);
+  });
+  $$('#trail .blk').forEach((b, k) => {
+    b.classList.toggle('lit', k > 0 && p > 0 && k <= lit);
+    b.classList.toggle('now', k > 0 && p > 0 && p < 9 && k === lit);
+  });
+  const box = $('#ovResult');
+  const img = `<img src="${PHOTOS[S.photo]}" alt="">`;
+  if (p <= 0) box.innerHTML = `${img}<div><div class="or-big">Aperte Reproduzir</div><div class="or-sub">para ver esta foto passar pelas 9 linhas, de cima para baixo.</div></div>`;
+  else if (p < 9) {
+    const L = clamp(lit, 1, 9);
+    box.innerHTML = `${img}<div><div class="or-big">Linha ${L}: ${TRAIL[L].name}</div><div class="or-sub">sai ${TRAIL[L].shape.replace(/×/g, ' × ')}</div></div>`;
+  } else box.innerHTML = `${img}<div><div class="or-big">Fim: 2 porcentagens, uma para cats e outra para dogs</div><div class="or-sub">${NOTEBOOK[S.photo].short}</div></div>`;
+};
+function clearTrailLit() { $$('#trail .blk').forEach(b => b.classList.remove('lit', 'now')); }
+
+/* ---- 1. Input ---- */
+R.input = () => {
+  const m = M[S.photo];
+  const cv = $('#inPhoto');
+  const size = avail(cv, 30);
+  const ctx = fit(cv, size, size);
+  ctx.drawImage(photoCv[S.photo], 0, 0, size, size);
+  const cell = size / 64;
+  ctx.strokeStyle = `rgba(255,255,255,${S.hl === 'size' ? .28 : .08})`;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = 1; i < 64; i++) {
+    const q = Math.round(i * cell) + .5;
+    ctx.moveTo(q, 0); ctx.lineTo(q, size); ctx.moveTo(0, q); ctx.lineTo(size, q);
+  }
+  ctx.stroke();
+  const { x, y } = S.px[S.photo];
+  strokeBox(ctx, x * cell - 1.5, y * cell - 1.5, cell + 3, cell + 3, T.cyan, 3, true);
+  const i = (y * 64 + x) * 3, rgb = [m.u8[i], m.u8[i + 1], m.u8[i + 2]];
+  $('#pxTitle').textContent = `Pixel da linha ${y + 1}, coluna ${x + 1}`;
+  $('#pxSwatch').style.background = `rgb(${rgb.join(',')})`;
+  $$('.rgb-row').forEach((row, k) => {
+    row.querySelector('i').style.width = (rgb[k] / 255 * 100) + '%';
+    row.querySelector('.rgb-val').textContent = rgb[k];
+  });
+  const cv2 = $('#inChannels');
+  const s2 = avail(cv2);
+  const c2 = fit(cv2, s2, s2);
+  drawChannels(c2, s2, ease(S.pos.input), rgb, x, y);
+  $('#inChanCap').textContent = S.pos.input < .5 ? 'Aperte Reproduzir para separar as 3 cores' : 'Vermelho + verde + azul, somados, formam a foto colorida';
+};
+function drawChannels(ctx, S0, t, rgb, px, py) {
+  const L = Math.round(S0 * .6), off = t * S0 * .17;
+  const cx = (S0 - L) / 2, cy = (S0 - L) / 2;
+  const pos = [[cx - off, cy + off], [cx, cy], [cx + off, cy - off]];
+  const col = ['#ff5a5a', '#38e07b', '#5b8cff'], name = ['R', 'G', 'B'];
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let k = 2; k >= 0; k--) ctx.drawImage(chanCv[S.photo][k], pos[k][0], pos[k][1], L, L);
+  ctx.restore();
+  if (t > .02) {
+    ctx.save();
+    ctx.globalAlpha = clamp(t * 1.4, 0, 1);
+    for (let k = 2; k >= 0; k--) {
+      ctx.strokeStyle = col[k]; ctx.lineWidth = 2;
+      ctx.strokeRect(pos[k][0] + 1, pos[k][1] + 1, L - 2, L - 2);
+    }
+    ctx.restore();
+  }
+  if (t > .45) {
+    const a = clamp((t - .45) / .55, 0, 1);
+    ctx.save();
+    ctx.globalAlpha = a;
+    const fs = Math.max(12, Math.round(S0 * .045));
+    ctx.font = `700 ${fs}px ${T.mono || 'monospace'}`;
+    for (let k = 0; k < 3; k++) {
+      const [lx, ly] = pos[k];
+      const txt = `${name[k]}: ${rgb[k]}`;
+      const tw = ctx.measureText(txt).width;
+      ctx.fillStyle = 'rgba(11,16,32,.82)';
+      ctx.fillRect(lx + 4, ly + 4, tw + 12, fs + 8);
+      ctx.fillStyle = col[k];
+      ctx.textBaseline = 'top';
+      ctx.fillText(txt, lx + 10, ly + 8);
+      const c = L / 64;
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
+      ctx.strokeRect(lx + px * c - 1, ly + py * c - 1, c + 2, c + 2);
+    }
+    ctx.restore();
+  }
+}
+function setPixelFromEvent(e) {
+  const cv = $('#inPhoto'), r = cv.getBoundingClientRect();
+  const x = clamp(Math.floor((e.clientX - r.left) / r.width * 64), 0, 63);
+  const y = clamp(Math.floor((e.clientY - r.top) / r.height * 64), 0, 63);
+  S.px[S.photo] = { x, y };
+}
+
+/* ---- 2. Rescaling ---- */
+function buildRescale() {
+  const g = $('#rsGrid');
+  g.innerHTML = '';
+  for (let k = 0; k < 25; k++) g.appendChild(el('div', 'cell'));
+}
+R.rescale = () => {
+  const m = M[S.photo];
+  const { x, y } = S.px[S.photo];
+  const x0 = clamp(x - 2, 0, 59), y0 = clamp(y - 2, 0, 59), ch = S.rsChan, t = S.pos.rescale;
+  const cells = $('#rsGrid').children;
+  for (let k = 0; k < 25; k++) {
+    const r = (k / 5) | 0, c = k % 5, i = ((y0 + r) * 64 + x0 + c) * 3;
+    const rr = m.u8[i], gg = m.u8[i + 1], bb = m.u8[i + 2], v = m.u8[i + ch];
+    const flipped = t >= 1 || t >= (k + 1) / 26;
+    const cell = cells[k];
+    cell.style.background = `rgb(${rr},${gg},${bb})`;
+    cell.style.color = (.299 * rr + .587 * gg + .114 * bb) > 140 ? '#0B1020' : '#F7F8FF';
+    cell.textContent = flipped ? fmt(v / 255, 3) : String(v);
+    cell.classList.toggle('sel', y0 + r === y && x0 + c === x);
+  }
+  const name = ['vermelho (R)', 'verde (G)', 'azul (B)'][ch];
+  $('#rsCap').textContent = t <= 0 ? `Quanto de ${name} cada pixel tem, de 0 a 255. Aperte Reproduzir.`
+    : t >= 1 ? 'Depois de dividir por 255: os mesmos pixels, agora com números de 0 a 1.' : 'Dividindo cada número por 255…';
+  drawRuler();
+};
+function drawRuler() {
+  const v = +$('#rsTry').value, X = q => 40 + q / 255 * 480, x = X(v);
+  const ls = T['line-strong'], mu = T.muted;
+  let h = `<text x="40" y="22" fill="${mu}" font-size="15">antes: de 0 a 255</text>`;
+  h += `<line x1="40" y1="56" x2="520" y2="56" stroke="${ls}" stroke-width="3" stroke-linecap="round"/>`;
+  [0, 64, 128, 192, 255].forEach(q => { h += `<line x1="${X(q)}" y1="48" x2="${X(q)}" y2="64" stroke="${ls}" stroke-width="2"/><text x="${X(q)}" y="84" fill="${mu}" font-size="15" text-anchor="middle">${q}</text>`; });
+  h += `<text x="40" y="124" fill="${mu}" font-size="15">depois: de 0 a 1</text>`;
+  h += `<line x1="40" y1="158" x2="520" y2="158" stroke="${ls}" stroke-width="3" stroke-linecap="round"/>`;
+  [[0, '0'], [.25, '0,25'], [.5, '0,5'], [.75, '0,75'], [1, '1']].forEach(([q, s]) => { const xx = 40 + q * 480; h += `<line x1="${xx}" y1="150" x2="${xx}" y2="166" stroke="${ls}" stroke-width="2"/><text x="${xx}" y="186" fill="${mu}" font-size="15" text-anchor="middle">${s}</text>`; });
+  h += `<line x1="${x}" y1="56" x2="${x}" y2="158" stroke="${T.amber}" stroke-width="2.5" stroke-dasharray="6 6"/>`;
+  h += `<circle cx="${x}" cy="56" r="10" fill="${T.amber}"/><circle cx="${x}" cy="158" r="10" fill="${T.amber}"/>`;
+  $('#rsRuler').innerHTML = h;
+  $('#rsTryOut').textContent = `${v} ÷ 255 = ${fmt(v / 255, 3)}`;
+}
+
+/* ---- peças comuns ---- */
+const PHOTOS = JSON.parse(document.getElementById('photoData').textContent);
+let FONT = 'sans-serif';
+function cellsIn(sel, n) { const g = $(sel); g.innerHTML = ''; for (let k = 0; k < n; k++) g.appendChild(el('div', 'cell')); }
+function tint(v, mx) {
+  if (Math.abs(v) < 1e-9) return '';
+  const a = (.14 + .5 * Math.min(1, Math.abs(v) / (mx || 1))).toFixed(3);
+  return v > 0 ? rgba(T.amber, a) : rgba(T.blue, a);
+}
+function reluText(pre, post) {
+  return pre < 0 ? 'Deu negativo, então a ReLU devolve <b>0</b>.' : `Deu positivo, então a ReLU mantém <b>${fmt(post)}</b>.`;
+}
+function drawReluMini(svg, x, D) {
+  const ox = 75, oy = 70, sx = 60 / D, sy = 56 / D, ls = T['line-strong'];
+  let h = `<line x1="10" y1="${oy}" x2="140" y2="${oy}" stroke="${ls}" stroke-width="1.5"/>`
+    + `<line x1="${ox}" y1="8" x2="${ox}" y2="90" stroke="${ls}" stroke-width="1.5"/>`
+    + `<polyline points="${ox - 60},${oy} ${ox},${oy} ${ox + 60},${oy - 56}" fill="none" stroke="${T.lime}" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>`;
+  if (x != null) {
+    const cx = clamp(x, -D, D), px = ox + cx * sx, py = oy - Math.max(0, cx) * sy;
+    h += `<line x1="${px}" y1="${oy}" x2="${px}" y2="${py}" stroke="${T.amber}" stroke-dasharray="3 3" stroke-width="1.5"/>`
+      + `<circle cx="${px}" cy="${py}" r="6.5" fill="${T.amber}" stroke="${T.surface}" stroke-width="2"/>`;
+  }
+  h += `<text x="140" y="${oy + 17}" fill="${T.muted}" font-size="12" text-anchor="end">soma</text>`
+    + `<text x="${ox + 6}" y="16" fill="${T.muted}" font-size="12">ReLU</text>`;
+  svg.innerHTML = h;
+}
+function drawKernel(cv, K, size) {
+  const ctx = fit(cv, size, size);
+  let mx = 0; K.forEach(r => r.forEach(v => { mx = Math.max(mx, Math.abs(v)); })); mx = mx || 1;
+  const c = size / 3;
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+    const v = K[i][j];
+    ctx.fillStyle = v === 0 ? 'rgba(128,140,190,.28)' : v > 0 ? rgba('#FFB02E', .3 + .7 * v / mx) : rgba('#5B8CFF', .3 + .7 * -v / mx);
+    ctx.fillRect(j * c + .5, i * c + .5, c - 1, c - 1);
+  }
+}
+function buildMapGallery(sel, n, onPick) {
+  const gal = $(sel); gal.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const b = el('button', 'gal-item'); b.type = 'button';
+    b.setAttribute('aria-pressed', 'false'); b.setAttribute('aria-label', `Mapa ${i + 1}`);
+    const mc = el('canvas'); mc.className = 'm';
+    b.append(mc, el('span', '', String(i + 1)));
+    b.addEventListener('click', () => { onPick(i); render(); drawTrail(); });
+    gal.appendChild(b);
+  }
+}
+function syncGallery(sel, layer, n, selected, withKernel) {
+  const gal = $(sel), items = $$('.gal-item', gal);
+  if (gal.dataset.stamp !== S.photo) {
+    items.forEach((b, i) => {
+      const sz = withKernel ? 40 : 44, ctx = fit(b.querySelector('canvas.m'), sz, sz);
+      ctx.drawImage(thumb(layer, i), 0, 0, sz, sz);
+      if (withKernel) drawKernel(b.querySelector('canvas.k'), F1[i].K, 26);
+    });
+    gal.dataset.stamp = S.photo;
+  }
+  items.forEach((b, i) => b.setAttribute('aria-pressed', String(i === selected)));
+}
+
+/* ---- 3. Conv2D(16) ---- */
+function buildConv1() {
+  cellsIn('#c1Patch', 9); cellsIn('#c1Kern', 9); cellsIn('#c1Prod', 9);
+  const gal = $('#c1Gallery'); gal.innerHTML = '';
+  F1.forEach((f, i) => {
+    const b = el('button', 'gal-item'); b.type = 'button';
+    b.setAttribute('aria-pressed', 'false'); b.setAttribute('aria-label', `Filtro ${i + 1}: ${f.name}`);
+    const row = el('div', 'gi-row'), kc = el('canvas'), mc = el('canvas');
+    kc.className = 'k'; mc.className = 'm';
+    row.append(kc, mc);
+    b.append(row, el('span', '', `${i + 1}. ${f.short}`));
+    b.addEventListener('click', () => { S.f1 = i; render(); drawTrail(); });
+    gal.appendChild(b);
+  });
+}
+R.conv1 = () => {
+  const m = M[S.photo], f = F1[S.f1];
+  const i = Math.min(Math.floor(S.pos.conv1), 3843), row = (i / 62) | 0, col = i % 62;
+  const cv = $('#c1In'), size = avail(cv), ctx = fit(cv, size, size), cell = size / 64;
+  ctx.drawImage(photoCv[S.photo], 0, 0, size, size);
+  strokeBox(ctx, col * cell, row * cell, 3 * cell, 3 * cell, T.cyan, S.hl === 'window' ? 4.5 : 3, true);
+  const patch = [], prods = [];
+  let sum = 0, kmx = 0, pmx = 0;
+  for (let ky = 0; ky < 3; ky++) for (let kx = 0; kx < 3; kx++) {
+    const p = ((row + ky) * 64 + col + kx) * 3;
+    const v = f.mix[0] * m.x[p] + f.mix[1] * m.x[p + 1] + f.mix[2] * m.x[p + 2], w = f.K[ky][kx];
+    patch.push(v); prods.push(v * w); sum += v * w;
+    kmx = Math.max(kmx, Math.abs(w)); pmx = Math.max(pmx, Math.abs(v * w));
+  }
+  const pre = sum + f.b, post = Math.max(0, pre);
+  const pc = $('#c1Patch').children, kc = $('#c1Kern').children, prc = $('#c1Prod').children;
+  for (let k = 0; k < 9; k++) {
+    const v = patch[k], w = f.K[(k / 3) | 0][k % 3];
+    if (f.rec === 'lum') {
+      const g = Math.round(clamp(v, 0, 1) * 255);
+      pc[k].style.background = `rgb(${g},${g},${g})`;
+      pc[k].style.color = g > 140 ? '#0B1020' : '#F4F6FF';
+    } else { pc[k].style.background = tint(v, 1); pc[k].style.color = ''; }
+    pc[k].textContent = fmt(v, 2);
+    kc[k].textContent = fw(w); kc[k].style.background = tint(w, kmx);
+    prc[k].textContent = fmt(prods[k], 2); prc[k].style.background = tint(prods[k], pmx);
+  }
+  $('#c1PatchLbl').textContent = RECIPE[f.rec].lbl;
+  $('#c1Recipe').textContent = RECIPE[f.rec].txt;
+  $('#c1Sum').innerHTML = `soma das 9 multiplicações = <b>${fmt(sum)}</b><br>+ bias <b>${fmt(f.b)}</b> = <span class="res${pre < 0 ? ' neg' : ''}">${fmt(pre)}</span>`;
+  drawReluMini($('#c1Relu'), pre, 4);
+  $('#c1ReluTxt').innerHTML = reluText(pre, post);
+  const oc = $('#c1Out'), osz = Math.min(Math.round(size * 62 / 64), avail(oc)), octx = fit(oc, osz, osz), isPre = S.c1Mode === 'pre';
+  paintMap(octx, 0, 0, osz, isPre ? m.c1pre : m.c1, 62, 16, S.f1, { pre: isPre, upto: i });
+  const oc2 = osz / 62;
+  strokeBox(octx, col * oc2 - 1.5, row * oc2 - 1.5, oc2 + 3, oc2 + 3, T.cyan, 2.5, true);
+  $('#c1OutCap').innerHTML = isPre
+    ? `Mapa do filtro ${S.f1 + 1} <b>antes da ReLU</b>: azul = negativo`
+    : `Mapa do filtro ${S.f1 + 1} (${f.short.toLowerCase()}): <b>62 × 62</b>`;
+  $$('#c1Mode button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === S.c1Mode)));
+  $('#c1Why').classList.toggle('on', col >= 59 || row >= 59);
+  syncGallery('#c1Gallery', 'c1', 16, S.f1, true);
+};
+
+/* ---- 4 e 6. MaxPooling2D ---- */
+function rPool(n) {
+  const m = M[S.photo];
+  const P = n === 1
+    ? { id: 'pool1', inp: m.c1, W: 62, C: 16, out: m.p1, O: 31, ch: S.f1, k: 'p1' }
+    : { id: 'pool2', inp: m.c2, W: 29, C: 32, out: m.p2, O: 14, ch: S.f2, k: 'p2' };
+  const i = Math.min(Math.floor(S.pos[P.id]), P.O * P.O - 1), r = (i / P.O) | 0, c = i % P.O;
+  const cv = $(`#${P.k}In`), size = avail(cv), ctx = fit(cv, size, size), cell = size / P.W;
+  const mx = mapMax(P.inp, P.W, P.C, P.ch);
+  paintMap(ctx, 0, 0, size, P.inp, P.W, P.C, P.ch, { max: mx });
+  if (n === 2) {
+    const e = P.O * 2 * cell;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(e, 0, size - e, size); ctx.rect(0, e, e, size - e); ctx.clip();
+    ctx.fillStyle = 'rgba(11,16,32,.62)'; ctx.fillRect(0, 0, size, size);
+    ctx.strokeStyle = rgba(T.pink, .95); ctx.lineWidth = 1.5; ctx.beginPath();
+    for (let q = -size; q < size; q += 7) { ctx.moveTo(q, size); ctx.lineTo(q + size, 0); }
+    ctx.stroke(); ctx.restore();
+  }
+  strokeBox(ctx, 2 * c * cell, 2 * r * cell, 2 * cell, 2 * cell, T.cyan, S.hl === 'window' ? 4.5 : 3, true);
+  const oc = $(`#${P.k}Out`), osz = Math.round(cell * P.O), octx = fit(oc, osz, osz);
+  paintMap(octx, 0, 0, osz, P.out, P.O, P.C, P.ch, { upto: i, max: mx });
+  strokeBox(octx, c * cell - 1.5, r * cell - 1.5, cell + 3, cell + 3, T.cyan, 2.5, true);
+  const vals = [];
+  for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) vals.push(P.inp[((2 * r + dy) * P.W + 2 * c + dx) * P.C + P.ch]);
+  const best = Math.max(...vals), bi = vals.indexOf(best), four = $(`#${P.k}Four`).children;
+  vals.forEach((v, q) => { four[q].textContent = fmt(v, 2); four[q].classList.toggle('win', q === bi); four[q].style.background = tint(v, mx); });
+  $(`#${P.k}Max`).textContent = fmt(best, 2);
+  $(`#${P.k}Sum`).innerHTML = `O maior dos 4 é <b>${fmt(best, 2)}</b>. Ele vai para a linha ${r + 1}, coluna ${c + 1} do mapa novo.`;
+  $(`#${P.k}InCap`).innerHTML = `Mapa ${P.ch + 1} de ${P.C}: <b>${P.W} × ${P.W}</b>`;
+  syncGallery(`#${P.k}Gallery`, P.k, P.C, P.ch, false);
+}
+R.pool1 = () => rPool(1);
+R.pool2 = () => rPool(2);
+
+/* ---- 5. Conv2D(32) ---- */
+function buildConv2() {
+  const host = $('#c2Maps'); host.innerHTML = '';
+  for (let c = 0; c < 16; c++) { const d = el('div', 'mini'); d.append(el('canvas'), el('span', '', '')); host.appendChild(d); }
+  buildMapGallery('#c2Gallery', 32, i => { S.f2 = i; });
+}
+R.conv2 = () => {
+  const m = M[S.photo], f = S.f2, meta = META2[f];
+  const i = Math.min(Math.floor(S.pos.conv2), 840), r = (i / 29) | 0, c = i % 29;
+  const contrib = new Float32Array(16);
+  for (let ky = 0; ky < 3; ky++) for (let kx = 0; kx < 3; kx++) {
+    const base = ((r + ky) * 31 + c + kx) * 16, wk = f * 144 + (ky * 3 + kx) * 16;
+    for (let ch = 0; ch < 16; ch++) contrib[ch] += W2[wk + ch] * m.p1[base + ch];
+  }
+  let sum = 0; for (const v of contrib) sum += v;
+  const pre = sum + B2[f], post = Math.max(0, pre);
+  $$('#c2Maps .mini').forEach((d, ch) => {
+    const cv = d.querySelector('canvas'), sz = Math.max(36, Math.floor(d.clientWidth)), ctx = fit(cv, sz, sz), cell = sz / 31;
+    ctx.drawImage(thumb('p1', ch), 0, 0, sz, sz);
+    strokeBox(ctx, c * cell, r * cell, 3 * cell, 3 * cell, T.cyan, S.hl === 'window' ? 2.6 : 1.8, false);
+    d.classList.toggle('main', ch === meta.a || ch === meta.b);
+    const sp = d.querySelector('span'), v = contrib[ch];
+    sp.textContent = fsg(v);
+    sp.className = Math.abs(v) < .005 ? 'zero' : v > 0 ? 'pos' : 'neg';
+  });
+  $('#c2Sum').innerHTML = `Soma das 16 partes = <b>${fmt(sum)}</b><br>+ bias <b>${fmt(B2[f])}</b> = <span class="res${pre < 0 ? ' neg' : ''}">${fmt(pre)}</span>`;
+  drawReluMini($('#c2Relu'), pre, 2);
+  $('#c2ReluTxt').innerHTML = reluText(pre, post);
+  $('#c2Recipe').textContent = `Filtro ${f + 1}: dá mais peso aos mapas ${meta.a + 1} e ${meta.b + 1} (contorno âmbar)${meta.diff ? ', um somando e o outro subtraindo' : ', os dois somando'}. Ao todo são 3 × 3 × 16 = 144 pesos + 1 bias.`;
+  const oc = $('#c2Out'), osz = avail(oc), octx = fit(oc, osz, osz), oc2 = osz / 29;
+  paintMap(octx, 0, 0, osz, m.c2, 29, 32, f, { upto: i });
+  strokeBox(octx, c * oc2 - 1.5, r * oc2 - 1.5, oc2 + 3, oc2 + 3, T.cyan, 2.5, true);
+  $('#c2OutCap').innerHTML = `Mapa do filtro ${f + 1} de 32: <b>29 × 29</b>`;
+  $('#c2Why').classList.toggle('on', c >= 26 || r >= 26);
+  syncGallery('#c2Gallery', 'c2', 32, f, false);
+};
+
+/* ---- 7. Flatten ---- */
+function buildFlat() {
+  const host = $('#flMaps'); host.innerHTML = '';
+  for (let c = 0; c < 32; c++) { const d = el('div', 'mini'); d.appendChild(el('canvas')); host.appendChild(d); }
+  const pk = $('#flPacket'); pk.innerHTML = '';
+  for (let c = 0; c < 32; c++) pk.appendChild(el('i'));
+}
+R.flat = () => {
+  const m = M[S.photo], p2 = m.p2, hi = m.p2hi;
+  const i = Math.min(Math.floor(S.pos.flat), 195), r = (i / 14) | 0, c = i % 14, n = (i + 1) * 32;
+  $$('#flMaps .mini').forEach((d, ch) => {
+    const cv = d.querySelector('canvas'), sz = Math.max(22, Math.floor(d.clientWidth)), ctx = fit(cv, sz, sz), cell = sz / 14;
+    ctx.drawImage(thumb('p2', ch), 0, 0, sz, sz);
+    strokeBox(ctx, c * cell - .5, r * cell - .5, cell + 1, cell + 1, T.cyan, 1.8, false);
+  });
+  const pk = $('#flPacket').children;
+  for (let ch = 0; ch < 32; ch++) { const v = p2[(r * 14 + c) * 32 + ch]; pk[ch].style.background = cssOf(v / hi); pk[ch].title = fmt(v, 2); }
+  $('#flPacketLbl').innerHTML = `Os 32 números da posição <b>linha ${r + 1}, coluna ${c + 1}</b>, um de cada mapa:`;
+  $('#flSum').innerHTML = `entram na fila nas posições <b>${fint(n - 31)}</b> a <b>${fint(n)}</b>`;
+  const cv = $('#flStrip'), w = Math.max(200, Math.floor(cv.parentElement.clientWidth)), h = 46, ctx = fit(cv, w, h);
+  ctx.fillStyle = `rgb(${EMPTY.join(',')})`; ctx.fillRect(0, 0, w, h);
+  const per = 6272 / w;
+  for (let x = 0; x < w; x++) {
+    const s = Math.floor(x * per);
+    if (s >= n) break;
+    const e = Math.min(n, Math.max(s + 1, Math.floor((x + 1) * per)));
+    let v = 0; for (let k = s; k < e; k++) if (p2[k] > v) v = p2[k];
+    ctx.fillStyle = cssOf(v / hi); ctx.fillRect(x, 0, 1.05, h);
+  }
+  ctx.fillStyle = T.cyan; ctx.fillRect(Math.min(w - 3, n / 6272 * w), 0, 3, h);
+  $('#flCount').textContent = fint(n);
+};
+
+/* ---- 8. Dense(32) ---- */
+function buildDense1() { const o = $('#d1Outs'); o.innerHTML = ''; for (let k = 0; k < 32; k++) o.appendChild(el('div', 'o')); }
+function drawNet1(j, frac) {
+  const cv = $('#d1Net'), fig = cv.closest('.fig'), W = Math.max(260, Math.min(460, fig.clientWidth)), H = Math.round(W * .7);
+  const ctx = fit(cv, W, H), m = M[S.photo];
+  const top = 14, bot = H - 30, bx = 24, bw = 18, nx = W - 46;
+  drawBarV(ctx, bx, top, bw, bot - top, m.p2, m.p2hi);
+  const ny = k => top + (bot - top) * (k + .5) / 32;
+  const rN = Math.max(3, Math.min(7, (bot - top) / 64 - 1)), SAMP = 24;
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = rgba(T['line-strong'], .12);
+  ctx.beginPath();
+  for (let s = 0; s < SAMP; s++) {
+    const y0 = top + (bot - top) * (s + .5) / SAMP;
+    for (let k = 0; k < 32; k++) { if (k === j) continue; ctx.moveTo(bx + bw, y0); ctx.lineTo(nx - rN, ny(k)); }
+  }
+  ctx.stroke();
+  for (let s = 0; s < SAMP; s++) {
+    const f0 = (s + .5) / SAMP, y0 = top + (bot - top) * f0, on = f0 <= frac;
+    ctx.strokeStyle = rgba(T.cyan, on ? .8 : .2); ctx.lineWidth = on ? 1.6 : 1;
+    ctx.beginPath(); ctx.moveTo(bx + bw, y0); ctx.lineTo(nx - rN, ny(j)); ctx.stroke();
+  }
+  if (frac > 0 && frac < 1) { ctx.fillStyle = T.cyan; ctx.fillRect(bx - 6, top + (bot - top) * frac - 1.5, bw + 12, 3); }
+  let mx = 0; for (const v of m.d1) if (v > mx) mx = v; mx = mx || 1;
+  for (let k = 0; k < 32; k++) {
+    const ok = k < j || (k === j && frac >= 1);
+    ctx.beginPath(); ctx.arc(nx, ny(k), rN, 0, 7);
+    ctx.fillStyle = ok ? cssOf(m.d1[k] / mx) : T.surface; ctx.fill();
+    ctx.lineWidth = k === j ? 2.5 : 1; ctx.strokeStyle = k === j ? T.cyan : T['line-strong']; ctx.stroke();
+  }
+  ctx.fillStyle = T.muted; ctx.font = `14px ${FONT}`; ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left'; ctx.fillText('fila: 6.272 números', 4, H - 8);
+  ctx.textAlign = 'right'; ctx.fillText('32 neurônios', W - 4, H - 8);
+}
+R.dense1 = () => {
+  const m = M[S.photo], p = S.pos.dense1;
+  const j = p <= 0 ? 0 : Math.min(31, Math.ceil(p) - 1), frac = p <= 0 ? 0 : clamp(p - j, 0, 1), done = frac >= 1;
+  const nT = Math.floor(frac * 6272), o = j * 6272;
+  let part = 0; for (let k = 0; k < nT; k++) part += W3[o + k] * m.p2[k];
+  const pre = m.d1pre[j], post = m.d1[j];
+  $('#d1Title').textContent = `Neurônio ${j + 1} de 32`;
+  const t = k => `${fmt(m.p2[k], 2)} × ${fmt(W3[o + k], 3)}`;
+  $('#d1Terms').innerHTML = `número 1 × peso: ${t(0)}<br>número 2 × peso: ${t(1)}<br>número 3 × peso: ${t(2)}<br><span style="color:var(--muted)">… mais 6.268 multiplicações …</span><br>número 6.272 × peso: ${t(6271)}<br>bias: ${fmt(B3[j], 2)}`;
+  $('#d1Prog').style.width = (frac * 100) + '%';
+  $('#d1Sum').innerHTML = done
+    ? `soma de tudo + bias = <span class="res${pre < 0 ? ' neg' : ''}">${fmt(pre)}</span>`
+    : `somando: <b>${fint(nT)}</b> de <b>6.272</b> multiplicações<br>parcial: <b>${fmt(part)}</b>`;
+  drawReluMini($('#d1Relu'), done ? pre : null, 4);
+  $('#d1ReluTxt').innerHTML = done ? reluText(pre, post) : 'A ReLU entra quando a soma termina.';
+  drawNet1(j, frac);
+  let mx = 0; for (const v of m.d1) if (v > mx) mx = v; mx = mx || 1;
+  const outs = $('#d1Outs').children;
+  for (let k = 0; k < 32; k++) {
+    const ok = k < j || (k === j && done), ob = outs[k];
+    if (ok) { const v = m.d1[k], tt = v / mx; ob.style.background = cssOf(tt); ob.style.color = textOn(tt); ob.textContent = fmt(v, 1); }
+    else { ob.style.background = ''; ob.style.color = ''; ob.textContent = ''; }
+    ob.style.outline = k === j ? `2px solid ${T.cyan}` : 'none';
+    ob.style.outlineOffset = '1px';
+  }
+};
+
+/* ---- 9. Dense(2) com softmax ---- */
+function drawNet2(pc) {
+  const cv = $('#d2Net'), W = avail(cv), H = Math.round(W * .95), ctx = fit(cv, W, H), m = M[S.photo];
+  const top = 14, bot = H - 14, ix = 22, ox = W - 64, R0 = Math.min(30, W * .1);
+  const iy = k => top + (bot - top) * (k + .5) / 32, oy = [H * .33, H * .67];
+  let mx = 0; for (const v of m.d1) if (v > mx) mx = v; mx = mx || 1;
+  ctx.lineWidth = 1; ctx.strokeStyle = rgba(T.pink, .22); ctx.beginPath();
+  for (let o = 0; o < 2; o++) for (let k = 0; k < 32; k++) { ctx.moveTo(ix + 4, iy(k)); ctx.lineTo(ox - R0, oy[o]); }
+  ctx.stroke();
+  for (let k = 0; k < 32; k++) {
+    ctx.beginPath(); ctx.arc(ix, iy(k), 3.6, 0, 7);
+    ctx.fillStyle = cssOf(m.d1[k] / mx); ctx.fill();
+    ctx.strokeStyle = T['line-strong']; ctx.lineWidth = .8; ctx.stroke();
+  }
+  const ps = [pc, 1 - pc], names = ['cats', 'dogs'];
+  for (let o = 0; o < 2; o++) {
+    ctx.beginPath(); ctx.arc(ox, oy[o], R0, 0, 7);
+    ctx.fillStyle = rgba(T.pink, .15 + .85 * ps[o]); ctx.fill();
+    ctx.lineWidth = 2.5; ctx.strokeStyle = T.pink; ctx.stroke();
+    ctx.fillStyle = ps[o] > .55 ? (effectiveTheme() === 'dark' ? '#0B1020' : '#FFFFFF') : T.text;
+    ctx.font = `700 15px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(names[o], ox, oy[o]);
+    ctx.fillStyle = T.muted; ctx.font = `13px ${FONT}`;
+    ctx.fillText('32 pesos + 1 bias', ox - 6, oy[o] + R0 + 14);
+  }
+}
+R.dense2 = () => {
+  const [tc, td] = S.scores[S.photo], t = ease(S.pos.dense2), zc = tc * t, zd = td * t;
+  $('#scCat').value = String(zc); $('#scDog').value = String(zd);
+  $('#scCatOut').textContent = fmt(zc, 1); $('#scDogOut').textContent = fmt(zd, 1);
+  const pc = softmax2(zc, zd), pd = 1 - pc, tie = Math.abs(pc - pd) < 5e-4;
+  const setBar = (id, p, win) => {
+    const b = $(id);
+    b.querySelector('i').style.width = (p * 100) + '%';
+    b.querySelector('.bl-pct').textContent = fmt(p * 100, 1) + '%';
+    b.classList.toggle('win', win);
+  };
+  setBar('#blCat', pc, !tie && pc > pd); setBar('#blDog', pd, !tie && pd > pc);
+  const e1 = fmt(zc, 1), e2 = fmt(zd, 1);
+  $('#smFormula').innerHTML = `cats: e<sup>${e1}</sup> ÷ (e<sup>${e1}</sup> + e<sup>${e2}</sup>) = ${fmt(pc, 3)}<br>dogs: e<sup>${e2}</sup> ÷ (e<sup>${e1}</sup> + e<sup>${e2}</sup>) = ${fmt(pd, 3)}<br>soma: ${fmt(pc + pd, 3)}, ou seja, 100%`;
+  const w = pc >= pd ? 0 : 1;
+  $('#smWinner').innerHTML = tie
+    ? '<div><div class="w-big">Empate: 50% e 50%</div><div class="w-sub">Com pontuações iguais, o softmax divide meio a meio.</div></div>'
+    : `<div style="font-size:40px;line-height:1" aria-hidden="true">${w ? '🐶' : '🐱'}</div><div><div class="w-big">A rede escolhe ${w ? 'dogs' : 'cats'}</div><div class="w-sub">argmax pega a posição ${w} da lista classes = ['cats', 'dogs']</div></div>`;
+  drawNet2(pc);
+  const nb = NOTEBOOK[S.photo];
+  $('#d2Real').innerHTML = `<img src="${PHOTOS[S.photo]}" alt="" style="width:48px;height:48px;border-radius:8px;image-rendering:pixelated"><span>${nb.lead}</span>${nb.lines.map(l => `<code>${l}</code>`).join('')}<span class="note" style="margin:0">${nb.extra ? nb.extra + ' ' : ''}O notebook mostra só a classe escolhida; as pontuações acima são de exemplo.</span>`;
+};
+
+/* =========================================================
+   11. Reprodução
+   ========================================================= */
+let raf = 0, last = 0;
+function render() { R[STEPS[S.step].id](); updatePlayBtn(); }
+function updatePlayBtn() {
+  $('#playIco').setAttribute('d', S.playing ? 'M6 4h4.5v16H6zM13.5 4H18v16h-4.5z' : 'M7 4.5v15l12-7.5z');
+  $('#playTxt').textContent = S.playing ? 'Pausar' : 'Reproduzir';
+}
+function setPlaying(on) {
+  S.playing = on;
+  cancelAnimationFrame(raf);
+  if (on) { last = performance.now(); raf = requestAnimationFrame(tick); }
+  updatePlayBtn();
+}
+function tick(now) {
+  const id = STEPS[S.step].id, max = MAX[id];
+  const dt = Math.min(.1, (now - last) / 1000);
+  last = now;
+  const p = S.pos[id] + RATES[id][S.speed] * dt * S.dir;
+  const end = S.dir > 0 ? p >= max : p <= 0;
+  S.pos[id] = clamp(p, 0, max);
+  if (end) { setPlaying(false); render(); return; }
+  render();
+  raf = requestAnimationFrame(tick);
+}
+function togglePlay() {
+  if (S.playing) { setPlaying(false); return; }
+  const id = STEPS[S.step].id;
+  if (id === 'input') S.dir = S.pos.input >= 1 ? -1 : 1;
+  else { S.dir = 1; if (S.pos[id] >= MAX[id]) S.pos[id] = 0; }
+  setPlaying(true);
+}
+function stepOnce() {
+  setPlaying(false);
+  const id = STEPS[S.step].id;
+  if (id === 'input' || id === 'rescale' || id === 'dense2') S.pos[id] = S.pos[id] >= 1 ? 0 : 1;
+  else S.pos[id] = Math.min(MAX[id], Math.floor(S.pos[id]) + 1);
+  render();
+}
+function resetStep() { setPlaying(false); S.pos[STEPS[S.step].id] = 0; render(); }
+
+/* =========================================================
+   12. Navegação, atalhos e eventos
+   ========================================================= */
+function goTo(i, force) {
+  i = clamp(i, 0, STEPS.length - 1);
+  if (i === S.step && !force) return;
+  setPlaying(false);
+  S.pin = null; S.hl = null;
+  $$('.tok.on').forEach(x => x.classList.remove('on'));
+  $('#pop').hidden = true;
+  delete $('#stage').dataset.hl;
+  S.step = i;
+  const id = STEPS[i].id;
+  $$('.scene').forEach(s => { s.hidden = s.dataset.scene !== id; });
+  if (id !== 'overview') clearTrailLit();
+  renderHead();
+  markTrail();
+  render();
+  try { history.replaceState(null, '', '#' + id); } catch (e) { /* sem histórico */ }
+}
+function setPhoto(k) {
+  if (!M[k] || k === S.photo) return;
+  S.photo = k;
+  $$('[data-photo]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.photo === k)));
+  drawTrail(); render();
+}
+function syncSpeed() { $$('#speedSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.speed === S.speed))); }
+function toggleFull() {
+  try {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
+  } catch (e) { /* tela cheia indisponível */ }
+}
+function openHelp() { const d = $('#helpDlg'); if (d.showModal && !d.open) d.showModal(); }
+function onKey(e) {
+  if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+  if ($('#helpDlg').open) return;
+  const tg = e.target, tag = tg && tg.tagName, k = e.key;
+  const inRange = tag === 'INPUT' && tg.type === 'range';
+  if (tag === 'TEXTAREA' || tag === 'SELECT' || (tag === 'INPUT' && !inRange)) return;
+  if (k === 'PageDown' || (k === 'ArrowRight' && !inRange)) { e.preventDefault(); goTo(S.step + 1); }
+  else if (k === 'PageUp' || (k === 'ArrowLeft' && !inRange)) { e.preventDefault(); goTo(S.step - 1); }
+  else if (k === ' ' || k === 'Spacebar') { e.preventDefault(); togglePlay(); }
+  else if (k === 'p' || k === 'P') stepOnce();
+  else if (k === 'r' || k === 'R') resetStep();
+  else if (k === 'f' || k === 'F') toggleFull();
+  else if (k === '?') openHelp();
+  else if (/^[0-9]$/.test(k)) goTo(+k);
+  else if (k === 'Escape') hideTok();
+}
+function bind() {
+  $('#prevBtn').addEventListener('click', () => goTo(S.step - 1));
+  $('#nextBtn').addEventListener('click', () => goTo(S.step + 1));
+  $('#playBtn').addEventListener('click', togglePlay);
+  $('#stepBtn').addEventListener('click', stepOnce);
+  $('#resetBtn').addEventListener('click', resetStep);
+  $$('#speedSeg button').forEach(b => b.addEventListener('click', () => { S.speed = b.dataset.speed; store.set('speed', S.speed); syncSpeed(); }));
+  $$('[data-photo]').forEach(b => b.addEventListener('click', () => setPhoto(b.dataset.photo)));
+  $('#themeBtn').addEventListener('click', () => {
+    const next = effectiveTheme() === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    store.set('theme', next);
+  });
+  const fb = $('#fullBtn');
+  if (!document.fullscreenEnabled) fb.hidden = true;
+  fb.addEventListener('click', toggleFull);
+  $('#helpBtn').addEventListener('click', openHelp);
+  const cl = $('#codeLine');
+  cl.addEventListener('pointerover', e => { const t = e.target.closest('.tok'); if (t && !S.pin) showTok(t); });
+  cl.addEventListener('pointerout', e => { const t = e.target.closest('.tok'); if (t && !S.pin) hideTok(); });
+  cl.addEventListener('click', e => {
+    const t = e.target.closest('.tok');
+    if (!t) return;
+    if (S.pin === t) hideTok(); else { S.pin = t; showTok(t); }
+  });
+  cl.addEventListener('focusin', e => { const t = e.target.closest('.tok'); if (t && !S.pin) showTok(t); });
+  cl.addEventListener('focusout', () => { if (!S.pin) hideTok(); });
+  document.addEventListener('pointerdown', e => { if (S.pin && !e.target.closest('.tok')) hideTok(); });
+  window.addEventListener('scroll', () => { if (!$('#pop').hidden) hideTok(); }, { passive: true });
+  const ip = $('#inPhoto'), ipCap = ip.closest('.fig').querySelector('figcaption');
+  ip.addEventListener('pointermove', e => { if (S.pxLock) return; setPixelFromEvent(e); render(); });
+  ip.addEventListener('click', e => {
+    setPixelFromEvent(e);
+    S.pxLock = !S.pxLock;
+    ipCap.textContent = S.pxLock ? 'Pixel fixado. Clique de novo para soltar.' : 'Passe o mouse na foto. Clique para fixar um pixel.';
+    render();
+  });
+  $$('#rsChan button').forEach(b => b.addEventListener('click', () => {
+    S.rsChan = +b.dataset.ch;
+    $$('#rsChan button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    render();
+  }));
+  $('#rsTry').addEventListener('input', drawRuler);
+  $$('#c1Mode button').forEach(b => b.addEventListener('click', () => { S.c1Mode = b.dataset.mode; render(); }));
+  const onScore = () => {
+    setPlaying(false);
+    S.scores[S.photo] = [+$('#scCat').value, +$('#scDog').value];
+    S.pos.dense2 = 1;
+    render(); drawTrail();
+  };
+  $('#scCat').addEventListener('input', onScore);
+  $('#scDog').addEventListener('input', onScore);
+  document.addEventListener('keydown', onKey);
+  document.addEventListener('keyup', e => { if ((e.key === ' ' || e.key === 'Spacebar') && e.target && e.target.tagName === 'BUTTON') e.preventDefault(); });
+  let rq = 0, lastW = 0;
+  const redraw = () => { cancelAnimationFrame(rq); rq = requestAnimationFrame(() => { drawTrail(); render(); }); };
+  window.addEventListener('resize', redraw);
+  if ('ResizeObserver' in window) {
+    new ResizeObserver(en => {
+      const w = Math.round(en[0].contentRect.width);
+      if (Math.abs(w - lastW) > 1) { lastW = w; redraw(); }
+    }).observe($('#stage'));
+  }
+  const onTheme = () => { readTheme(); drawTrail(); render(); };
+  const mq = matchMedia('(prefers-color-scheme: dark)');
+  if (mq.addEventListener) mq.addEventListener('change', onTheme); else if (mq.addListener) mq.addListener(onTheme);
+  new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { readTheme(); drawTrail(); render(); });
+}
+
+/* =========================================================
+   13. Início
+   ========================================================= */
+function loadImg(src) {
+  return new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
+}
+async function init() {
+  const saved = store.get('theme', null);
+  if (saved === 'dark' || saved === 'light') document.documentElement.setAttribute('data-theme', saved);
+  readTheme();
+  FONT = getComputedStyle(document.documentElement).getPropertyValue('--font').trim() || 'sans-serif';
+  const rgbaBy = {};
+  for (const [k, src] of Object.entries(PHOTOS)) {
+    const im = await loadImg(src);
+    const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(im, 0, 0, 64, 64);
+    const data = ctx.getImageData(0, 0, 64, 64).data;
+    photoCv[k] = c; rgbaBy[k] = data;
+    chanCv[k] = [0, 1, 2].map(ch => {
+      const cc = document.createElement('canvas'); cc.width = 64; cc.height = 64;
+      const x = cc.getContext('2d'), id = x.createImageData(64, 64);
+      for (let q = 0; q < 4096; q++) { id.data[q * 4 + ch] = data[q * 4 + ch]; id.data[q * 4 + 3] = 255; }
+      x.putImageData(id, 0, 0);
+      return cc;
+    });
+  }
+  buildModel(rgbaBy);
+  $$('[data-thumb]').forEach(im => { im.src = PHOTOS[im.dataset.thumb]; });
+  buildTrail(); buildOverview(); buildRescale(); buildConv1();
+  cellsIn('#p1Four', 4); cellsIn('#p2Four', 4);
+  buildMapGallery('#p1Gallery', 16, i => { S.f1 = i; });
+  buildMapGallery('#p2Gallery', 32, i => { S.f2 = i; });
+  buildConv2(); buildFlat(); buildDense1();
+  bind(); syncSpeed(); drawTrail();
+  const fromHash = STEPS.findIndex(s => '#' + s.id === location.hash);
+  goTo(fromHash > 0 ? fromHash : 0, true);
+}
+init().catch(err => {
+  console.error(err);
+  const s = $('#say');
+  if (s) s.textContent = 'Não foi possível carregar as fotos embutidas neste arquivo.';
+});
+})();
+
+</script>
+</body>
+</html>
